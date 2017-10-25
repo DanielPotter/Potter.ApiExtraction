@@ -1,0 +1,277 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema
+  attributeFormDefault="unqualified"
+  elementFormDefault="qualified"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://schemas.danielrpotter.com/api/2017"
+  xmlns="http://schemas.danielrpotter.com/api/2017"
+  >
+  <xs:element name="Api" type="ApiElement">
+    <xs:annotation>
+      <xs:documentation>
+        Schema for the API selection files.
+      </xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="ApiElement">
+    <xs:annotation>
+      <xs:documentation>
+        This document defines the assembly for which an API should be generated,
+        and the code generation options and filters.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="Assembly" type="AssemblyElement" minOccurs="1" maxOccurs="1" />
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="Clear" type="ClearTypeSelectorElement" />
+        <xs:element name="Add" type="AddTypeRefinableSelectorElement" />
+        <xs:element name="Remove" type="RemoveTypeRefinableSelectorElement" />
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="AssemblyElement">
+    <xs:annotation>
+      <xs:documentation>
+        Describes how types should be read for a particular assembly.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="Name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          The assembly name from which types should be read.
+          You can use the 'Location' attribute to specify a path to the assembly to read.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="Location" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>The assembly full path name.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="AddTypeRefinableSelectorElement">
+    <xs:annotation>
+      <xs:documentation>
+        Adds types based on the filter values.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="AddTypeSelectorElement">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="Remove" type="RemoveTypeSelectorElement" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="RemoveTypeRefinableSelectorElement">
+    <xs:annotation>
+      <xs:documentation>
+        Removes types based on the filter values.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="RemoveTypeSelectorElement">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="Add" type="AddTypeSelectorElement" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="ClearTypeSelectorElement">
+    <xs:annotation>
+      <xs:documentation>
+        Removes all types.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="TypeSelectorElementBase" />
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="AddTypeSelectorElement">
+    <xs:annotation>
+      <xs:documentation>
+        Adds types based on the filter values.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="TypeFilterSelectorElement">
+        <xs:attribute name="SkipVirtualMethods" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              Disables the selection of virtual methods.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="SkipVirtualIndexers" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              Disables the selection of virtual property indexers.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="TargetName" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional name to apply when transforming the types added by this filter.
+
+              By default, the filtered type's namespace is preserved while the name is prefixed with
+              &quot;I&quot; (when transforming instance members) and suffixed with
+              &quot;Manager&quot; (when transforming static members). More specialized
+              transformation can be done by adding an &quot;*&quot; (append base type name) at the
+              end of the name or a namespace at the beginning of the name. For example,
+              &quot;Baz.Bar&quot; with &quot;Foo&quot; becomes &quot;Baz.Foo&quot;;
+              &quot;Baz.Bar&quot; with &quot;Foo*&quot; becomes &quot;Baz.FooBar&quot;;
+              &quot;Baz.Bar&quot; with &quot;Qux.Foo*&quot; becomes &quot;Qux.FooBar&quot;
+              but not &quot;BarFoo&quot;.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="RemoveTypeSelectorElement">
+    <xs:annotation>
+      <xs:documentation>
+        Removes types based on the filter values.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="TypeFilterSelectorElement">
+        <xs:attribute name="Obsolete" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter Obsolete types.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="TypeFilterSelectorElement" abstract="true">
+    <xs:complexContent>
+      <xs:extension base="TypeSelectorElementBase">
+        <xs:attribute name="AbstractClasses" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter abstract classes.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="Interfaces" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter interfaces.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="Namespace" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter types based on their namespace.
+
+              By default, the filter perform a case-insensitive matching. More specializing matching
+              can be done by adding a &quot;!&quot; (case-sensitive and full match) at the end of
+              the filter or &quot;*&quot; (case-insensitive, starts or ends with) at the beginning
+              or end of the filter. For example, &quot;*foo&quot; matches &quot;Foo&quot; and
+              &quot;BarFoo&quot;; &quot;Foo!&quot; matches &quot;Foo&quot; but not
+              &quot;FooBar&quot;; &quot;Foo*&quot; matches &quot;Foo&quot; and &quot;FooBar&quot;
+              but not &quot;BarFoo&quot;.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="TypeName" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter types based on their type name.
+
+              By default, the filter perform a case-insensitive matching. More specializing matching
+              can be done by adding a &quot;!&quot; (case-sensitive and full match) at the end of
+              the filter or &quot;*&quot; (case-insensitive, starts or ends with) at the beginning
+              or end of the filter. For example, &quot;*foo&quot; matches &quot;Foo&quot; and
+              &quot;BarFoo&quot;; &quot;Foo!&quot; matches &quot;Foo&quot; but not
+              &quot;FooBar&quot;; &quot;Foo*&quot; matches &quot;Foo&quot; and &quot;FooBar&quot;
+              but not &quot;BarFoo&quot;.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="FullName" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter types based on their full type name.
+
+              By default, the filter perform a case-insensitive matching. More specializing matching
+              can be done by adding a &quot;!&quot; (case-sensitive and full match) at the end of
+              the filter or &quot;*&quot; (case-insensitive, starts or ends with) at the beginning
+              or end of the filter. For example, &quot;*foo&quot; matches &quot;Foo&quot; and
+              &quot;BarFoo&quot;; &quot;Foo!&quot; matches &quot;Foo&quot; but not
+              &quot;FooBar&quot;; &quot;Foo*&quot; matches &quot;Foo&quot; and &quot;FooBar&quot;
+              but not &quot;BarFoo&quot;.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="TypeSelectorElementBase" abstract="true" />
+
+  <xs:complexType name="MemberFilterSelectorElement" abstract="true">
+    <xs:complexContent>
+      <xs:extension base="MemberSelectorElementBase">
+        <xs:attribute name="Abstract" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter abstract members.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="Virtual" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter virtual members.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="Static" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter static members.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="Protected" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter protected members.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="MemberName" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter members based on their type name.
+
+              By default, the filter perform a case-insensitive matching. More specializing matching
+              can be done by adding a &quot;!&quot; (case-sensitive and full match) at the end of
+              the filter or &quot;*&quot; (case-insensitive, starts or ends with) at the beginning
+              or end of the filter. For example, &quot;*foo&quot; matches &quot;Foo&quot; and
+              &quot;BarFoo&quot;; &quot;Foo!&quot; matches &quot;Foo&quot; but not
+              &quot;FooBar&quot;; &quot;Foo*&quot; matches &quot;Foo&quot; and &quot;FooBar&quot;
+              but not &quot;BarFoo&quot;.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="MemberSelectorElementBase" abstract="true" />
+</xs:schema>

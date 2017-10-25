@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Api xmlns="http://schemas.danielrpotter.com/api/2017">
+  <Assembly Name="mscorlib" />
+  <Clear />
+  <Add FullName="System.TimeZoneInfo" />
+  <Remove Obsolete="true" />
+</Api>

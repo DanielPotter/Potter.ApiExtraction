@@ -1,0 +1,444 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema
+  attributeFormDefault="unqualified"
+  elementFormDefault="qualified"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://schemas.microsoft.com/fakes/2011/"
+  xmlns="http://schemas.microsoft.com/fakes/2011/"
+  >
+  <xs:annotation>
+    <xs:documentation>
+      Schema for the .fakes files.
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:complexType name="CodeGenerationElementBase" abstract="true">
+    <xs:annotation>
+      <xs:documentation>
+        Code generation settings
+      </xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="Disable" type="xs:boolean" use="optional" default="false">
+      <xs:annotation>
+        <xs:documentation>
+          Disable the code generation for this kind of element
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="StubGenerationElement">
+    <xs:complexContent>
+      <xs:extension base="CodeGenerationElementBase">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="Clear" type="ClearTypeSelectorElement" />
+          <xs:element name="Add" type="StubAddTypeSelectorElement" />
+          <xs:element name="Remove" type="StubRemoveTypeSelectorElement" />
+        </xs:choice>
+        <xs:attribute name="SkipVirtualMethods" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              Disables the generation of stubs for virtual methods.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="SkipVirtualIndexers" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              Disables the generation of stubs for virtual property indexers.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="ShimGenerationElement">
+    <xs:annotation>
+      <xs:documentation>
+        Configuration of the shim type generation
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="CodeGenerationElementBase">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="Clear" type="ClearTypeSelectorElement" />
+          <xs:element name="Add" type="ShimAddTypeSelectorElement" />
+          <xs:element name="Remove" type="ShimRemoveTypeSelectorElement" />
+        </xs:choice>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType abstract="true" name="TypeSelectorElementBase">
+  </xs:complexType>
+
+  <xs:complexType name="ClearTypeSelectorElement">
+    <xs:annotation>
+      <xs:documentation>
+        Removes all types
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="TypeSelectorElementBase" />
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType abstract="true" name="TypeFilterSelectorElementBase">
+    <xs:complexContent>
+      <xs:extension base="TypeSelectorElementBase">
+        <xs:attribute name="Namespace" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter types based on their namespace.
+
+              By default the filter perform a case-insensitive substring matching. More specializing matching
+              can be done by adding a &quot;!&quot; (case-sensitive and full match) or
+              &quot;*&quot; (case-insensitive, starts with) at the end of the filter.
+              For example, &quot;fo&quot; matches &quot;Foo&quot; and &quot;FooBar&quot;;
+              &quot;Foo!&quot; matches &quot;Foo&quot; but not &quot;FooBar&quot;;
+              &quot;Foo*&quot; matches &quot;Foo&quot; and &quot;FooBar&quot; but not &quot;BarFoo&quot;.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="TypeName" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter types based on their type name.
+
+              By default the filter perform a case-insensitive substring matching. More specializing matching
+              can be done by adding a &quot;!&quot; (case-sensitive and full match) or
+              &quot;*&quot; (case-insensitive, starts with) at the end of the filter.
+              For example, &quot;fo&quot; matches &quot;Foo&quot; and &quot;FooBar&quot;;
+              &quot;Foo!&quot; matches &quot;Foo&quot; but not &quot;FooBar&quot;;
+              &quot;Foo*&quot; matches &quot;Foo&quot; and &quot;FooBar&quot; but not &quot;BarFoo&quot;.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="FullName" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter types based on their full type name.
+
+              By default the filter perform a case-insensitive substring matching. More specializing matching
+              can be done by adding a &quot;!&quot; (case-sensitive and full match) or
+              &quot;*&quot; (case-insensitive, starts with) at the end of the filter.
+              For example, &quot;fo&quot; matches &quot;Foo&quot; and &quot;FooBar&quot;;
+              &quot;Foo!&quot; matches &quot;Foo&quot; but not &quot;FooBar&quot;;
+              &quot;Foo*&quot; matches &quot;Foo&quot; and &quot;FooBar&quot; but not &quot;BarFoo&quot;.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="StubTypeFilterSelectorElementBase" abstract="true">
+    <xs:complexContent>
+      <xs:extension base="TypeFilterSelectorElementBase">
+        <xs:attribute name="AbstractClasses" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter abstract classes.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="Interfaces" type="xs:boolean" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter interfaces.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="StubAddTypeSelectorElement">
+    <xs:annotation>
+      <xs:documentation>
+        Adds types based on the filter values
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="StubTypeFilterSelectorElementBase">
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="StubRemoveTypeSelectorElement">
+    <xs:annotation>
+      <xs:documentation>
+        Removes types based on the filter values
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="StubTypeFilterSelectorElementBase">
+        <xs:attribute name="Obsolete" use="optional" type="xs:boolean">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter Obsolete types.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="ShimAddTypeSelectorElement">
+    <xs:annotation>
+      <xs:documentation>
+        Adds types based on the filter values
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="TypeFilterSelectorElementBase">
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="ShimRemoveTypeSelectorElement">
+    <xs:annotation>
+      <xs:documentation>
+        Removes types based on the filter values
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="TypeFilterSelectorElementBase">
+        <xs:attribute name="Obsolete" use="optional" type="xs:boolean">
+          <xs:annotation>
+            <xs:documentation>
+              An optional filter to filter Obsolete types.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="AssemblyElement">
+    <xs:annotation>
+      <xs:documentation>
+        Describes how stubs should be generated for a particular assembly.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="Name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          The assembly name for which stubs should be generated.
+          If the name refers to a referenced project, the tool will resolve the location of the assembly
+          automatically. You can use the 'Location' attribute to specify a path to the assembly to stub.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="Version" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>
+          The entry represents a version number that should be embedded in the generated Fakes assembly
+          file name. This field can be used to avoid Fakes assembly name clashes between multiple
+          versions of the same assembly accross multiple projects.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="Location" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>The assembly full path name.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="x86" type="xs:boolean" use="optional">
+      <xs:annotation>
+        <xs:documentation>Forces fakes to load the assembly in a x86 process.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="CompilationElement">
+    <xs:annotation>
+      <xs:documentation>
+        Settings for pre-compiling stubs and shims into an assembly
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element type="CompilationReferenceElement" minOccurs="0" maxOccurs="unbounded" name="Reference" />
+      <xs:element type="CompilationCOMReferenceElement" minOccurs="0" maxOccurs="unbounded" name="COMReference" />
+      <xs:element type="CompilationPropertyElement" minOccurs="0" maxOccurs="unbounded" name="Property" />
+    </xs:sequence>
+    <xs:attribute name="DisableCodeContracts" type="xs:boolean" default ="false" use="optional">
+      <xs:annotation>
+        <xs:documentation>
+          Disables rewritting the generated assembly with Code Contracts runtime checking.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="KeyFile" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>
+          Path to the key file used that will be used to sign the generated assembly
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="Debug" type="xs:boolean" default ="false" use="optional">
+      <xs:annotation>
+        <xs:documentation>
+          Emit debugging information
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="ProjectTemplate" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>
+          Path to an empty C# project file that will be used to create
+          Fakes assemblies project for compilation
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="CompilationPropertyElement">
+    <xs:annotation>
+      <xs:documentation>
+        Additional MSBuild property to be set in the project.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Name" type="xs:string" use="required">
+          <xs:annotation>
+            <xs:documentation>
+              Property name
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="Condition" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              MSBuild condition associated to this property
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="CompilationReferenceElement">
+    <xs:annotation>
+      <xs:documentation>
+        An assembly full name and its file path.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="FullName" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          Reference assembly full name
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="Path" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          Path to the assembly
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="CompilationCOMReferenceElement">
+    <xs:annotation>
+      <xs:documentation>
+        A reference to a COM component
+      </xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="Guid" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          Guid of the COM component
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="VersionMajor" type="xs:int" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          Major version number
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="VersionMinor" type="xs:int" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          Minor version number
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="WrapperTool" type="xs:string" use="optional" default="tlbimp">
+      <xs:annotation>
+        <xs:documentation>
+          Tool used to generate the COM reference
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="FakesElement">
+    <xs:annotation>
+      <xs:documentation>
+        This document defines the assembly for which shims and stubs should be generated,
+        and the code generation options and filters.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element minOccurs="1" maxOccurs="1" name="Assembly" type="AssemblyElement" />
+      <xs:element minOccurs="0" maxOccurs="1" name="StubGeneration" type="StubGenerationElement" />
+      <xs:element minOccurs="0" maxOccurs="1" name="ShimGeneration" type="ShimGenerationElement" />
+      <xs:element minOccurs="0" maxOccurs="1" name="Compilation" type="CompilationElement" />
+    </xs:sequence>
+    <xs:attribute name="LibraryPath" type="xs:string">
+      <xs:annotation>
+        <xs:documentation>
+          A semicolon separated list of paths where assembly reference need to be probed.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="Diagnostic" type="xs:boolean">
+      <xs:annotation>
+        <xs:documentation>
+          Enables additional logging and various internal checks.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="Verbosity" type="LogEventLevel">
+      <xs:annotation>
+        <xs:documentation>
+          Logging verbosity. Default is 'Message', overriden to 'Verbose'
+          when Diagnostic is true.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="Timestamp" type="xs:dateTime" use="optional">
+      <xs:annotation>
+        <xs:documentation>
+          Internal use. Datetime stamp of the original .fakes file.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="TargetFrameworkVersion" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>
+          The target framework version to compile against, v2.0, v3.0, v3.5, v4.0, etc...
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:simpleType name="LogEventLevel">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Critical"/>
+      <xs:enumeration value="Error"/>
+      <xs:enumeration value="Warning"/>
+      <xs:enumeration value="Message"/>
+      <xs:enumeration value="Verbose"/>
+      <xs:enumeration value="Noisy"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="Fakes" type="FakesElement" />
+</xs:schema>
