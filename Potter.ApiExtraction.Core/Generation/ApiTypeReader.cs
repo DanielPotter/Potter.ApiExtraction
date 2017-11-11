@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -409,7 +410,20 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private SyntaxToken getApiTypeIdentifier(Type type)
         {
-            return Identifier("I" + type.Name);
+            var nameBuilder = new StringBuilder();
+
+            nameBuilder.Append('I');
+
+            if (type.IsGenericType)
+            {
+                nameBuilder.Append(type.Name.Substring(0, type.Name.IndexOf('`')));
+            }
+            else
+            {
+                nameBuilder.Append(type.Name);
+            }
+
+            return Identifier(nameBuilder.ToString());
         }
     }
 
