@@ -5,10 +5,10 @@ namespace Potter.ApiExtraction.Core.Tests
 {
     public static class ExpectedTypes
     {
-        public static (Type type, CompilationUnitExpectation expectation) EmptyClass { get; } =
-        (
-            typeof(Types.EmptyClass),
-            new CompilationUnitExpectation
+        public static Expectation EmptyClass { get; } = new Expectation
+        {
+            Type = typeof(Types.EmptyClass),
+            CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
                 {
@@ -24,13 +24,13 @@ namespace Potter.ApiExtraction.Core.Tests
                         },
                     },
                 },
-            }
-        );
+            },
+        };
 
-        public static (Type type, CompilationUnitExpectation expectation) SimpleProperties { get; } =
-        (
-            typeof(Types.SimpleProperties),
-            new CompilationUnitExpectation
+        public static Expectation SimpleProperties { get; } = new Expectation
+        {
+            Type = typeof(Types.SimpleProperties),
+            CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
                 {
@@ -61,13 +61,13 @@ namespace Potter.ApiExtraction.Core.Tests
                         },
                     },
                 },
-            }
-        );
+            },
+        };
 
-        public static (Type type, CompilationUnitExpectation expectation) SimpleEvents { get; } =
-        (
-            typeof(Types.SimpleEvents),
-            new CompilationUnitExpectation
+        public static Expectation SimpleEvents { get; } = new Expectation
+        {
+            Type = typeof(Types.SimpleEvents),
+            CompilationUnit = new CompilationUnitExpectation
             {
                 Usings =
                 {
@@ -98,13 +98,13 @@ namespace Potter.ApiExtraction.Core.Tests
                         },
                     },
                 },
-            }
-        );
+            },
+        };
 
-        public static (Type type, CompilationUnitExpectation expectation) IndexerProperties { get; } =
-        (
-            typeof(Types.IndexerProperties),
-            new CompilationUnitExpectation
+        public static Expectation IndexerProperties { get; } = new Expectation
+        {
+            Type = typeof(Types.IndexerProperties),
+            CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
                 {
@@ -139,13 +139,13 @@ namespace Potter.ApiExtraction.Core.Tests
                         },
                     },
                 },
-            }
-        );
+            },
+        };
 
-        public static (Type type, CompilationUnitExpectation expectation) SimpleMethods { get; } =
-        (
-            typeof(Types.SimpleMethods),
-            new CompilationUnitExpectation
+        public static Expectation SimpleMethods { get; } = new Expectation
+        {
+            Type = typeof(Types.SimpleMethods),
+            CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
                 {
@@ -188,13 +188,13 @@ namespace Potter.ApiExtraction.Core.Tests
                         },
                     },
                 },
-            }
-        );
+            },
+        };
 
-        public static (Type type, CompilationUnitExpectation expectation) GenericMethods { get; } =
-        (
-            typeof(Types.GenericMethods),
-            new CompilationUnitExpectation
+        public static Expectation GenericMethods { get; } = new Expectation
+        {
+            Type = typeof(Types.GenericMethods),
+            CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
                 {
@@ -237,13 +237,13 @@ namespace Potter.ApiExtraction.Core.Tests
                         },
                     },
                 },
-            }
-        );
+            },
+        };
 
-        public static (Type type, CompilationUnitExpectation expectation) GenericMethodsWithConstraints { get; } =
-        (
-            typeof(Types.GenericMethodsWithConstraints),
-            new CompilationUnitExpectation
+        public static Expectation GenericMethodsWithConstraints { get; } = new Expectation
+        {
+            Type = typeof(Types.GenericMethodsWithConstraints),
+            CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
                 {
@@ -287,8 +287,8 @@ namespace Potter.ApiExtraction.Core.Tests
                         },
                     },
                 },
-            }
-        );
+            },
+        };
     }
 }
 

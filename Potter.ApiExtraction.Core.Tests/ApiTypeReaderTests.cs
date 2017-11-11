@@ -16,10 +16,10 @@ namespace Potter.ApiExtraction.Core.Tests
         {
             // Arrange
             var apiTypeReader = new ApiTypeReader();
-            (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.EmptyClass;
+            Expectation expectation = ExpectedTypes.EmptyClass;
 
             // Assert
-            ReadExpectation(apiTypeReader, type, expectation);
+            ReadExpectation(apiTypeReader, expectation);
         }
 
         [TestMethod]
@@ -27,10 +27,10 @@ namespace Potter.ApiExtraction.Core.Tests
         {
             // Arrange
             var apiTypeReader = new ApiTypeReader();
-            (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.SimpleProperties;
+            Expectation expectation = ExpectedTypes.SimpleProperties;
 
             // Assert
-            ReadExpectation(apiTypeReader, type, expectation);
+            ReadExpectation(apiTypeReader, expectation);
         }
 
         [TestMethod]
@@ -38,10 +38,10 @@ namespace Potter.ApiExtraction.Core.Tests
         {
             // Arrange
             var apiTypeReader = new ApiTypeReader();
-            (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.SimpleEvents;
+            Expectation expectation = ExpectedTypes.SimpleEvents;
 
             // Assert
-            ReadExpectation(apiTypeReader, type, expectation);
+            ReadExpectation(apiTypeReader, expectation);
         }
 
         [TestMethod]
@@ -49,10 +49,10 @@ namespace Potter.ApiExtraction.Core.Tests
         {
             // Arrange
             var apiTypeReader = new ApiTypeReader();
-            (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.IndexerProperties;
+            Expectation expectation = ExpectedTypes.IndexerProperties;
 
             // Assert
-            ReadExpectation(apiTypeReader, type, expectation);
+            ReadExpectation(apiTypeReader, expectation);
         }
 
         [TestMethod]
@@ -60,10 +60,10 @@ namespace Potter.ApiExtraction.Core.Tests
         {
             // Arrange
             var apiTypeReader = new ApiTypeReader();
-            (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.SimpleMethods;
+            Expectation expectation = ExpectedTypes.SimpleMethods;
 
             // Assert
-            ReadExpectation(apiTypeReader, type, expectation);
+            ReadExpectation(apiTypeReader, expectation);
         }
 
         [TestMethod]
@@ -71,10 +71,10 @@ namespace Potter.ApiExtraction.Core.Tests
         {
             // Arrange
             var apiTypeReader = new ApiTypeReader();
-            (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.GenericMethods;
+            Expectation expectation = ExpectedTypes.GenericMethods;
 
             // Assert
-            ReadExpectation(apiTypeReader, type, expectation);
+            ReadExpectation(apiTypeReader, expectation);
         }
 
         [TestMethod]
@@ -82,15 +82,15 @@ namespace Potter.ApiExtraction.Core.Tests
         {
             // Arrange
             var apiTypeReader = new ApiTypeReader();
-            (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.GenericMethodsWithConstraints;
+            Expectation expectation = ExpectedTypes.GenericMethodsWithConstraints;
 
             // Assert
-            ReadExpectation(apiTypeReader, type, expectation);
+            ReadExpectation(apiTypeReader, expectation);
         }
 
         #region Helpers
 
-        public static void ReadExpectation(ApiTypeReader typeReader, Type type, CompilationUnitExpectation expectation)
+        public static void ReadExpectation(ApiTypeReader typeReader, Expectation expectation)
         {
             var typeNameResolver = new TypeNameResolver
             {
@@ -98,10 +98,10 @@ namespace Potter.ApiExtraction.Core.Tests
             };
 
             // Act
-            var compilationUnit = typeReader.ReadCompilationUnit(type, typeNameResolver);
+            var compilationUnit = typeReader.ReadCompilationUnit(expectation.Type, typeNameResolver);
 
             // Assert
-            AssertCompilationUnit(expectation, compilationUnit);
+            AssertCompilationUnit(expectation.CompilationUnit, compilationUnit);
         }
 
         public static void AssertCompilationUnit(CompilationUnitExpectation expected, CompilationUnitSyntax actual)
