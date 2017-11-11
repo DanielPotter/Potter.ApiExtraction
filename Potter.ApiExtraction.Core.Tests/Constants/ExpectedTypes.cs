@@ -289,6 +289,266 @@ namespace Potter.ApiExtraction.Core.Tests
                 },
             },
         };
+
+        public static Expectation GenericClassOf1 { get; } = new Expectation
+        {
+            Type = typeof(Types.GenericClass<>),
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.GenericClass<>).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClass<int>)}<T1>",
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        public static Expectation GenericClassOf2 { get; } = new Expectation
+        {
+            Type = typeof(Types.GenericClass<,>),
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.GenericClass<,>).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClass<int, int>)}<T1,T2>",
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        public static Expectation GenericClassWithClassConstraint { get; } = new Expectation
+        {
+            Type = typeof(Types.GenericClassWithClassConstraint<>),
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.GenericClassWithClassConstraint<>).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithClassConstraint<object>)}<T1>",
+                                Constraints =
+                                {
+                                    "whereT1:class",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        public static Expectation GenericClassWithValueConstraint { get; } = new Expectation
+        {
+            Type = typeof(Types.GenericClassWithValueConstraint<>),
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.GenericClassWithValueConstraint<>).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithValueConstraint<int>)}<T1>",
+                                Constraints =
+                                {
+                                    "whereT1:struct",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        public static Expectation GenericClassWithMultipleConstraints { get; } = new Expectation
+        {
+            Type = typeof(Types.GenericClassWithMultipleConstraints<,>),
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.GenericClassWithMultipleConstraints<,>).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithMultipleConstraints<object, int>)}<T1,T2>",
+                                Constraints =
+                                {
+                                    "whereT1:class",
+                                    "whereT2:struct",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        public static Expectation ClassWithConstructors { get; } = new Expectation
+        {
+            Type = typeof(Types.ClassWithConstructors),
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.ClassWithConstructors).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.ClassWithConstructors)}Manager",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = "Create()",
+                                    },
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = "Create(boolarg1)",
+                                    },
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = "Create(boolarg1,intarg2)",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        public static Expectation GenericClassWithConstructors { get; } = new Expectation
+        {
+            Type = typeof(Types.GenericClassWithConstructors<,>),
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.GenericClassWithConstructors<,>).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithConstructors<int, int>)}<T1,T2>",
+                            },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithConstructors<int, int>)}Manager<T1,T2>",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.GenericClassWithConstructors<int, int>)}<T1,T2>Create()",
+                                    },
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.GenericClassWithConstructors<int, int>)}<T1,T2>Create(T1arg1)",
+                                    },
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.GenericClassWithConstructors<int, int>)}<T1,T2>Create(T1arg1,T2arg2)",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        public static Expectation ClassWithStaticMembers { get; } = new Expectation
+        {
+            Type = typeof(Types.ClassWithStaticMembers),
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.ClassWithStaticMembers).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.ClassWithStaticMembers)}",
+                            },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.ClassWithStaticMembers)}Manager",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Property)
+                                    {
+                                        Declaration = "intValue{get;set;}",
+                                    },
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = "voidAction()",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        public static Expectation EmptyStaticClass { get; } = new Expectation
+        {
+            Type = typeof(Types.EmptyStaticClass),
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.EmptyStaticClass).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.EmptyStaticClass)}Manager",
+                            },
+                        },
+                    },
+                },
+            },
+        };
     }
 }
 
@@ -440,7 +700,7 @@ namespace Potter.ApiExtraction.Types
     {
     }
 
-    public class GenericClassWithClassConstraint<T1, T2>
+    public class GenericClassWithMultipleConstraints<T1, T2>
             where T1 : class
             where T2 : struct
     {

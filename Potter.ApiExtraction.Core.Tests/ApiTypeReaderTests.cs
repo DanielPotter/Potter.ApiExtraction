@@ -88,6 +88,105 @@ namespace Potter.ApiExtraction.Core.Tests
             ReadExpectation(apiTypeReader, expectation);
         }
 
+        [TestMethod]
+        public void Read_GenericClassOf1()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.GenericClassOf1;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
+        [TestMethod]
+        public void Read_GenericClassOf2()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.GenericClassOf2;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
+        [TestMethod]
+        public void Read_GenericClassWithClassConstraint()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.GenericClassWithClassConstraint;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
+        [TestMethod]
+        public void Read_GenericClassWithValueConstraint()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.GenericClassWithValueConstraint;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
+        [TestMethod]
+        public void Read_GenericClassWithMultipleConstraints()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.GenericClassWithMultipleConstraints;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
+        [TestMethod]
+        public void Read_ClassWithConstructors()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.ClassWithConstructors;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
+        [TestMethod]
+        public void Read_GenericClassWithConstructors()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.GenericClassWithConstructors;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
+        [TestMethod]
+        public void Read_ClassWithStaticMembers()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.ClassWithStaticMembers;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
+        [TestMethod]
+        public void Read_EmptyStaticClass()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.EmptyStaticClass;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
         #region Helpers
 
         public static void ReadExpectation(ApiTypeReader typeReader, Expectation expectation)
