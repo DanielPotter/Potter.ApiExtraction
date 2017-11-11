@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
-namespace Potter.ApiExtraction.Core.V2.Generation
+namespace Potter.ApiExtraction.Core.Generation
 {
     public class TypeNameResolver
     {

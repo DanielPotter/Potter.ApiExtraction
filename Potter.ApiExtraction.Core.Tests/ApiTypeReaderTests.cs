@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Potter.ApiExtraction.Core.Generation;
 using Potter.ApiExtraction.Core.Tests.Constants;
 
 namespace Potter.ApiExtraction.Core.Tests
@@ -14,7 +15,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public void Read_EmptyClass()
         {
             // Arrange
-            var apiTypeReader = new V2.Generation.ApiTypeReader();
+            var apiTypeReader = new ApiTypeReader();
             (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.EmptyClass;
 
             // Assert
@@ -25,7 +26,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public void Read_SimpleProperties()
         {
             // Arrange
-            var apiTypeReader = new V2.Generation.ApiTypeReader();
+            var apiTypeReader = new ApiTypeReader();
             (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.SimpleProperties;
 
             // Assert
@@ -36,7 +37,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public void Read_SimpleEvents()
         {
             // Arrange
-            var apiTypeReader = new V2.Generation.ApiTypeReader();
+            var apiTypeReader = new ApiTypeReader();
             (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.SimpleEvents;
 
             // Assert
@@ -47,7 +48,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public void Read_IndexerProperties()
         {
             // Arrange
-            var apiTypeReader = new V2.Generation.ApiTypeReader();
+            var apiTypeReader = new ApiTypeReader();
             (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.IndexerProperties;
 
             // Assert
@@ -58,7 +59,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public void Read_SimpleMethods()
         {
             // Arrange
-            var apiTypeReader = new V2.Generation.ApiTypeReader();
+            var apiTypeReader = new ApiTypeReader();
             (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.SimpleMethods;
 
             // Assert
@@ -69,7 +70,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public void Read_GenericMethods()
         {
             // Arrange
-            var apiTypeReader = new V2.Generation.ApiTypeReader();
+            var apiTypeReader = new ApiTypeReader();
             (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.GenericMethods;
 
             // Assert
@@ -80,7 +81,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public void Read_GenericMethodsWithConstraints()
         {
             // Arrange
-            var apiTypeReader = new V2.Generation.ApiTypeReader();
+            var apiTypeReader = new ApiTypeReader();
             (Type type, CompilationUnitExpectation expectation) = ExpectedTypes.GenericMethodsWithConstraints;
 
             // Assert
@@ -89,9 +90,9 @@ namespace Potter.ApiExtraction.Core.Tests
 
         #region Helpers
 
-        public static void ReadExpectation(V2.Generation.ApiTypeReader typeReader, Type type, CompilationUnitExpectation expectation)
+        public static void ReadExpectation(ApiTypeReader typeReader, Type type, CompilationUnitExpectation expectation)
         {
-            var typeNameResolver = new V2.Generation.TypeNameResolver
+            var typeNameResolver = new TypeNameResolver
             {
                 SimplifyNamespaces = true,
             };
