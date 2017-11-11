@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -40,7 +39,7 @@ namespace Potter.ApiExtraction.Core.V2.Generation
                 return IdentifierName(type.Name);
             }
 
-            return ParseTypeName("global::"+ type.FullName);
+            return ParseTypeName("global::" + type.FullName);
         }
 
         private SyntaxKind? tryGetPredefinedSyntaxKind(Type type)

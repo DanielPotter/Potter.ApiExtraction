@@ -1,4 +1,4 @@
-﻿namespace Potter.ApiExtraction.Core.Tests.Constants
+namespace Potter.ApiExtraction.Core.Tests.Constants
 {
     public enum MemberType
     {

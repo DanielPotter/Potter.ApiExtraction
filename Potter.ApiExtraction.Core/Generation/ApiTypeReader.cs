@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -82,7 +81,8 @@ namespace Potter.ApiExtraction.Core.V2.Generation
                 switch (memberInfo.MemberType)
                 {
                     case MemberTypes.Constructor:
-                        // TODO: Constructors should be added to a manager interface. (Daniel Potter, 11/8/2017)
+                        // TODO: Constructors should be added to a manager interface. (Daniel
+                        //       Potter, 11/8/2017)
                         break;
 
                     case MemberTypes.Event:
@@ -437,7 +437,8 @@ namespace Potter.ApiExtraction.Core.V2.Generation
 
             MethodInfo firstAccessor = eventInfo.GetAddMethod();
 
-            // Check if the event is an override. (https://stackoverflow.com/a/16530993/2503153 11/8/2017)
+            // Check if the event is an override. (https://stackoverflow.com/a/16530993/2503153
+            // 11/8/2017)
             if (firstAccessor.GetBaseDefinition().DeclaringType != firstAccessor.DeclaringType)
             {
                 return MemberExtensionKind.Override;
@@ -474,7 +475,8 @@ namespace Potter.ApiExtraction.Core.V2.Generation
 
             MethodInfo firstAccessor = propertyInfo.GetAccessors()[0];
 
-            // Check if the property is an override. (https://stackoverflow.com/a/16530993/2503153 11/8/2017)
+            // Check if the property is an override. (https://stackoverflow.com/a/16530993/2503153
+            // 11/8/2017)
             if (firstAccessor.GetBaseDefinition().DeclaringType != firstAccessor.DeclaringType)
             {
                 return MemberExtensionKind.Override;
@@ -493,8 +495,8 @@ namespace Potter.ApiExtraction.Core.V2.Generation
 
         public static MemberExtensionKind GetExtensionKind(this MethodInfo methodInfo)
         {
-
-            // Check if the method is an override. (https://stackoverflow.com/a/16530993/2503153 11/8/2017)
+            // Check if the method is an override. (https://stackoverflow.com/a/16530993/2503153
+            // 11/8/2017)
             if (methodInfo.GetBaseDefinition().DeclaringType != methodInfo.DeclaringType)
             {
                 return MemberExtensionKind.Override;
