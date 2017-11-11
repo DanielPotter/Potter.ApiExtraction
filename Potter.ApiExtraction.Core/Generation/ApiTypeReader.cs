@@ -13,6 +13,8 @@ namespace Potter.ApiExtraction.Core.Generation
 {
     public class ApiTypeReader
     {
+        private const BindingFlags AllPublicMembers = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Static;
+
         public CompilationUnitSyntax ReadCompilationUnit(Type type, TypeNameResolver typeNameResolver = null)
         {
             if (typeNameResolver == null)
@@ -43,35 +45,71 @@ namespace Potter.ApiExtraction.Core.Generation
             }
 
             return NamespaceDeclaration(IdentifierName(type.Namespace))
-                .WithMembers(SingletonList(readType(type, typeNameResolver)));
+                .WithMembers(List<MemberDeclarationSyntax>(readInterface(type, typeNameResolver)));
         }
 
-        private MemberDeclarationSyntax readType(Type type, TypeNameResolver typeNameResolver)
+        private IEnumerable<InterfaceDeclarationSyntax> readInterface(Type type, TypeNameResolver typeNameResolver)
         {
             if (type.IsClass || type.IsInterface || type.IsValueType)
             {
-                var declaration = InterfaceDeclaration(getApiTypeIdentifier(type))
-                    .WithBaseList(getBaseList(type))
-                    .WithMembers(List(getMembers(type, typeNameResolver)))
-                    .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
+                var members = getMembers(type, typeNameResolver);
 
-                if (type.IsGenericType)
+                var instanceMembers = new List<MemberDeclarationSyntax>();
+                var managerMembers = new List<MemberDeclarationSyntax>();
+
+                foreach (var member in members)
                 {
-                    declaration = declaration
-                        .WithConstraintClauses(List(getTypeConstraints(type)))
-                        .WithTypeParameterList(TypeParameterList(SeparatedList(getTypeParameters(type))));
+                    if (member.isManager)
+                    {
+                        managerMembers.Add(member.member);
+                    }
+                    else
+                    {
+                        instanceMembers.Add(member.member);
+                    }
                 }
 
-                return declaration;
-            }
+                bool isStatic = type.IsSealed && type.IsAbstract;
 
-            return null;
+                if (isStatic == false)
+                {
+                    var instanceDeclaration = InterfaceDeclaration(getApiTypeIdentifier(type))
+                        .WithBaseList(getBaseList(type))
+                        .WithMembers(List(instanceMembers))
+                        .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
+
+                    if (type.IsGenericType)
+                    {
+                        instanceDeclaration = instanceDeclaration
+                            .WithConstraintClauses(List(getTypeConstraints(type)))
+                            .WithTypeParameterList(TypeParameterList(SeparatedList(getTypeParameters(type))));
+                    }
+
+                    yield return instanceDeclaration;
+                }
+
+                if (isStatic || managerMembers.Count > 0)
+                {
+                    var managerDeclaration = InterfaceDeclaration(getApiTypeIdentifier(type, isManager: true))
+                        .WithBaseList(getBaseList(type))
+                        .WithMembers(List(managerMembers))
+                        .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
+
+                    if (type.IsGenericType)
+                    {
+                        managerDeclaration = managerDeclaration
+                            .WithConstraintClauses(List(getTypeConstraints(type)))
+                            .WithTypeParameterList(TypeParameterList(SeparatedList(getTypeParameters(type))));
+                    }
+
+                    yield return managerDeclaration;
+                }
+            }
         }
 
-        private IEnumerable<MemberDeclarationSyntax> getMembers(Type type, TypeNameResolver typeNameResolver)
+        private IEnumerable<(MemberDeclarationSyntax member, bool isManager)> getMembers(Type type, TypeNameResolver typeNameResolver)
         {
-            // TODO: Add static members to a manager interface. (Daniel Potter, 11/8/2017)
-            foreach (MemberInfo memberInfo in type.GetMembers(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            foreach (MemberInfo memberInfo in type.GetMembers(AllPublicMembers))
             {
                 if (memberInfo.GetCustomAttribute(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute)) != null)
                 {
@@ -103,7 +141,7 @@ namespace Potter.ApiExtraction.Core.Generation
                                 .AddModifiers(Token(SyntaxKind.NewKeyword));
                         }
 
-                        yield return eventDeclaration;
+                        yield return (eventDeclaration, false);
                         break;
 
                     case MemberTypes.Field:
@@ -132,7 +170,7 @@ namespace Potter.ApiExtraction.Core.Generation
                                 .AddModifiers(Token(SyntaxKind.NewKeyword));
                         }
 
-                        yield return methodDeclaration;
+                        yield return (methodDeclaration, methodInfo.IsStatic);
                         break;
 
                     case MemberTypes.Property:
@@ -154,7 +192,8 @@ namespace Potter.ApiExtraction.Core.Generation
                                     .AddModifiers(Token(SyntaxKind.NewKeyword));
                             }
 
-                            yield return indexerDeclaration;
+                            // Indexers cannot be static.
+                            yield return (indexerDeclaration, false);
                         }
                         else
                         {
@@ -166,7 +205,7 @@ namespace Potter.ApiExtraction.Core.Generation
                                     .AddModifiers(Token(SyntaxKind.NewKeyword));
                             }
 
-                            yield return propertyDeclaration;
+                            yield return (propertyDeclaration, propertyInfo.GetAccessors()[0].IsStatic);
                         }
                         break;
 
@@ -408,7 +447,7 @@ namespace Potter.ApiExtraction.Core.Generation
             }
         }
 
-        private SyntaxToken getApiTypeIdentifier(Type type)
+        private SyntaxToken getApiTypeIdentifier(Type type, bool isManager = false)
         {
             var nameBuilder = new StringBuilder();
 
@@ -421,6 +460,11 @@ namespace Potter.ApiExtraction.Core.Generation
             else
             {
                 nameBuilder.Append(type.Name);
+            }
+
+            if (isManager)
+            {
+                nameBuilder.Append("Manager");
             }
 
             return Identifier(nameBuilder.ToString());
