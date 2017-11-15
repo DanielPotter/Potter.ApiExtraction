@@ -658,16 +658,27 @@ namespace Potter.ApiExtraction.Core.Tests
                             },
                             new TypeExpectation
                             {
+                                Declaration = $"publicinterfaceI{nameof(Types.ClassWithStaticMembers)}Factory",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.ClassWithStaticMembers)}Create{nameof(Types.ClassWithStaticMembers)}()",
+                                    },
+                                },
+                            },
+                            new TypeExpectation
+                            {
                                 Declaration = $"publicinterfaceI{nameof(Types.ClassWithStaticMembers)}Manager",
                                 Members =
                                 {
-                                    new MemberExpectation(MemberType.Property)
-                                    {
-                                        Declaration = "intValue{get;set;}",
-                                    },
                                     new MemberExpectation(MemberType.Method)
                                     {
                                         Declaration = "voidAction()",
+                                    },
+                                    new MemberExpectation(MemberType.Property)
+                                    {
+                                        Declaration = "intValue{get;set;}",
                                     },
                                 },
                             },
