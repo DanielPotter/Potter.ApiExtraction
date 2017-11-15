@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -206,57 +207,36 @@ namespace Potter.ApiExtraction.Core.Tests
         public static void AssertCompilationUnit(CompilationUnitExpectation expected, CompilationUnitSyntax actual)
         {
             // Compare usings.
-            IEnumerator<string> expectedUsingEnumerator = expected.Usings.GetEnumerator();
-            IEnumerator<UsingDirectiveSyntax> actualUsingEnumerator = ((IEnumerable<UsingDirectiveSyntax>) actual.Usings).GetEnumerator();
-
-            while (expectedUsingEnumerator.MoveNext())
+            AssertSequence(expected.Usings, actual.Usings, (expectedUsing, actualUsing) =>
             {
-                Assert.IsTrue(actualUsingEnumerator.MoveNext());
-
-                Assert.AreEqual(expectedUsingEnumerator.Current, actualUsingEnumerator.Current.ToString());
-            }
-
-            Assert.IsFalse(actualUsingEnumerator.MoveNext());
+                Assert.AreEqual(expectedUsing, actualUsing.ToString());
+            });
 
             // Compare namespaces.
-            IEnumerator<NamespaceExpectation> expectedMemberEnumerator = expected.Namespaces.GetEnumerator();
-            IEnumerator<MemberDeclarationSyntax> actualMemberEnumerator = ((IEnumerable<MemberDeclarationSyntax>) actual.Members).GetEnumerator();
-
-            while (expectedMemberEnumerator.MoveNext())
+            AssertSequence(expected.Namespaces, actual.Members, (expectedMember, actualMember) =>
             {
-                Assert.IsTrue(actualMemberEnumerator.MoveNext());
-
-                if (actualMemberEnumerator.Current is NamespaceDeclarationSyntax actualNamespace)
+                if (actualMember is NamespaceDeclarationSyntax actualNamespace)
                 {
-                    AssertNamespaceDeclaration(expectedMemberEnumerator.Current, actualNamespace);
+                    AssertNamespaceDeclaration(expectedMember, actualNamespace);
                 }
 
-                Assert.IsInstanceOfType(actualMemberEnumerator.Current, typeof(NamespaceDeclarationSyntax));
-            }
-
-            Assert.IsFalse(actualMemberEnumerator.MoveNext());
+                Assert.IsInstanceOfType(actualMember, typeof(NamespaceDeclarationSyntax));
+            });
         }
 
         public static void AssertNamespaceDeclaration(NamespaceExpectation expected, NamespaceDeclarationSyntax actual)
         {
             Assert.AreEqual(expected.Namespace, actual.Name.ToString());
 
-            IEnumerator<TypeExpectation> expectedEnumerator = expected.Types.GetEnumerator();
-            IEnumerator<MemberDeclarationSyntax> actualEnumerator = ((IEnumerable<MemberDeclarationSyntax>) actual.Members).GetEnumerator();
-
-            while (expectedEnumerator.MoveNext())
+            AssertSequence(expected.Types, actual.Members, (expectedMember, actualMember) =>
             {
-                Assert.IsTrue(actualEnumerator.MoveNext());
-
-                if (actualEnumerator.Current is InterfaceDeclarationSyntax actualInterface)
+                if (actualMember is InterfaceDeclarationSyntax actualInterface)
                 {
-                    AssertInterfaceDeclaration(expectedEnumerator.Current, actualInterface);
+                    AssertInterfaceDeclaration(expectedMember, actualInterface);
                 }
 
-                Assert.IsInstanceOfType(actualEnumerator.Current, typeof(InterfaceDeclarationSyntax));
-            }
-
-            Assert.IsFalse(actualEnumerator.MoveNext());
+                Assert.IsInstanceOfType(actualMember, typeof(InterfaceDeclarationSyntax));
+            });
         }
 
         public static void AssertInterfaceDeclaration(TypeExpectation expected, InterfaceDeclarationSyntax actual)
@@ -264,20 +244,7 @@ namespace Potter.ApiExtraction.Core.Tests
             Assert.AreEqual(expected.Declaration, getDeclaration(actual));
             AssertConstraints(expected.Constraints, actual.ConstraintClauses);
 
-            IEnumerator<MemberExpectation> expectedEnumerator = expected.Members.GetEnumerator();
-            IEnumerator<MemberDeclarationSyntax> actualEnumerator = ((IEnumerable<MemberDeclarationSyntax>) actual.Members).GetEnumerator();
-
-            while (expectedEnumerator.MoveNext())
-            {
-                Assert.IsTrue(actualEnumerator.MoveNext());
-
-                AssertMemberDeclaration(expectedEnumerator.Current, actualEnumerator.Current);
-            }
-
-            if (actualEnumerator.MoveNext())
-            {
-                Assert.AreEqual(expected.Members.Count, actual.Members.Count);
-            }
+            AssertSequence(expected.Members, actual.Members, AssertMemberDeclaration);
         }
 
         private static string getDeclaration(InterfaceDeclarationSyntax actual)
@@ -315,24 +282,31 @@ namespace Potter.ApiExtraction.Core.Tests
 
         public static void AssertConstraints(ICollection<string> expected, SyntaxList<TypeParameterConstraintClauseSyntax> actual)
         {
-            Assert.AreEqual(expected.Count, actual.Count, "Wrong number of parameter constraints.");
-
-            if (expected.Count == 0)
+            AssertSequence(expected, actual, (expectedConstraint, actualConstraint) =>
             {
-                return;
-            }
+                Assert.AreEqual(expectedConstraint, actualConstraint.ToString());
+            });
+        }
 
-            IEnumerator<string> expectedEnumerator = expected.GetEnumerator();
-            IEnumerator<TypeParameterConstraintClauseSyntax> actualEnumerator = ((IEnumerable<TypeParameterConstraintClauseSyntax>) actual).GetEnumerator();
+        public static void AssertSequence<TExpected, TActual>(IEnumerable<TExpected> expected, IEnumerable<TActual> actual, Action<TExpected, TActual> assert)
+        {
+            IEnumerator<TExpected> expectedEnumerator = expected.GetEnumerator();
+            IEnumerator<TActual> actualEnumerator = actual.GetEnumerator();
 
             while (expectedEnumerator.MoveNext())
             {
-                Assert.IsTrue(actualEnumerator.MoveNext());
+                if (actualEnumerator.MoveNext() == false)
+                {
+                    Assert.AreEqual(expected.Count(), actual.Count(), "Too few items.");
+                }
 
-                Assert.AreEqual(expectedEnumerator.Current, actualEnumerator.Current.ToString());
+                assert(expectedEnumerator.Current, actualEnumerator.Current);
             }
 
-            Assert.IsFalse(actualEnumerator.MoveNext());
+            if (actualEnumerator.MoveNext())
+            {
+                Assert.AreEqual(expected.Count(), actual.Count(), "Too many items.");
+            }
         }
 
         #endregion

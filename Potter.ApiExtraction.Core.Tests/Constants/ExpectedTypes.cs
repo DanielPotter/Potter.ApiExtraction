@@ -427,20 +427,24 @@ namespace Potter.ApiExtraction.Core.Tests
                         {
                             new TypeExpectation
                             {
-                                Declaration = $"publicinterfaceI{nameof(Types.ClassWithConstructors)}Manager",
+                                Declaration = $"publicinterfaceI{nameof(Types.ClassWithConstructors)}",
+                            },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.ClassWithConstructors)}Factory",
                                 Members =
                                 {
                                     new MemberExpectation(MemberType.Method)
                                     {
-                                        Declaration = "Create()",
+                                        Declaration = $"I{nameof(Types.ClassWithConstructors)}Create{nameof(Types.ClassWithConstructors)}()",
                                     },
                                     new MemberExpectation(MemberType.Method)
                                     {
-                                        Declaration = "Create(boolarg1)",
+                                        Declaration = $"I{nameof(Types.ClassWithConstructors)}Create{nameof(Types.ClassWithConstructors)}(boolarg1)",
                                     },
                                     new MemberExpectation(MemberType.Method)
                                     {
-                                        Declaration = "Create(boolarg1,intarg2)",
+                                        Declaration = $"I{nameof(Types.ClassWithConstructors)}Create{nameof(Types.ClassWithConstructors)}(boolarg1,intarg2)",
                                     },
                                 },
                             },
@@ -468,20 +472,20 @@ namespace Potter.ApiExtraction.Core.Tests
                             },
                             new TypeExpectation
                             {
-                                Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithConstructors<int, int>)}Manager<T1,T2>",
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithConstructors<int, int>)}Factory<T1,T2>",
                                 Members =
                                 {
                                     new MemberExpectation(MemberType.Method)
                                     {
-                                        Declaration = $"I{nameof(Types.GenericClassWithConstructors<int, int>)}<T1,T2>Create()",
+                                        Declaration = $"I{nameof(Types.GenericClassWithConstructors<int, int>)}<T1,T2>Create{nameof(Types.GenericClassWithConstructors<int, int>)}()",
                                     },
                                     new MemberExpectation(MemberType.Method)
                                     {
-                                        Declaration = $"I{nameof(Types.GenericClassWithConstructors<int, int>)}<T1,T2>Create(T1arg1)",
+                                        Declaration = $"I{nameof(Types.GenericClassWithConstructors<int, int>)}<T1,T2>Create{nameof(Types.GenericClassWithConstructors<int, int>)}(T1arg1)",
                                     },
                                     new MemberExpectation(MemberType.Method)
                                     {
-                                        Declaration = $"I{nameof(Types.GenericClassWithConstructors<int, int>)}<T1,T2>Create(T1arg1,T2arg2)",
+                                        Declaration = $"I{nameof(Types.GenericClassWithConstructors<int, int>)}<T1,T2>Create{nameof(Types.GenericClassWithConstructors<int, int>)}(T1arg1,T2arg2)",
                                     },
                                 },
                             },

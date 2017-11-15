@@ -25,11 +25,14 @@ namespace Potter.ApiExtraction.Core.Generation
                 };
             }
 
+            NamespaceDeclarationSyntax namespaceDeclaration = ReadNamespace(type, typeNameResolver);
+            IEnumerable<string> usings = typeNameResolver.GetRegisteredNamespaces().Where(namespaceName => namespaceName != namespaceDeclaration.Name.ToString());
+
             var compilationUnit = CompilationUnit()
-                .WithMembers(SingletonList<MemberDeclarationSyntax>(ReadNamespace(type, typeNameResolver)));
+                .WithMembers(SingletonList<MemberDeclarationSyntax>(namespaceDeclaration));
 
             compilationUnit = compilationUnit
-                .WithUsings(List(typeNameResolver.GetRegisteredNamespaces().Select(qualifiedNamespace => UsingDirective(ParseName(qualifiedNamespace)))));
+                .WithUsings(List(usings.Select(qualifiedNamespace => UsingDirective(ParseName(qualifiedNamespace)))));
 
             return compilationUnit;
         }
@@ -55,17 +58,24 @@ namespace Potter.ApiExtraction.Core.Generation
                 var members = getMembers(type, typeNameResolver);
 
                 var instanceMembers = new List<MemberDeclarationSyntax>();
+                var factoryMembers = new List<MemberDeclarationSyntax>();
                 var managerMembers = new List<MemberDeclarationSyntax>();
 
                 foreach (var member in members)
                 {
-                    if (member.isManager)
+                    switch (member.role)
                     {
-                        managerMembers.Add(member.member);
-                    }
-                    else
-                    {
-                        instanceMembers.Add(member.member);
+                        case InterfaceRole.Instance:
+                            instanceMembers.Add(member.member);
+                            break;
+
+                        case InterfaceRole.Factory:
+                            factoryMembers.Add(member.member);
+                            break;
+
+                        case InterfaceRole.Manager:
+                            managerMembers.Add(member.member);
+                            break;
                     }
                 }
 
@@ -73,41 +83,46 @@ namespace Potter.ApiExtraction.Core.Generation
 
                 if (isStatic == false)
                 {
-                    var instanceDeclaration = InterfaceDeclaration(getApiTypeIdentifier(type))
-                        .WithBaseList(getBaseList(type))
-                        .WithMembers(List(instanceMembers))
-                        .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
+                    yield return createInterface(type, instanceMembers, InterfaceRole.Instance);
 
-                    if (type.IsGenericType)
+                    if (factoryMembers.Count > 0)
                     {
-                        instanceDeclaration = instanceDeclaration
-                            .WithConstraintClauses(List(getTypeConstraints(type)))
-                            .WithTypeParameterList(TypeParameterList(SeparatedList(getTypeParameters(type))));
+                        yield return createInterface(type, factoryMembers, InterfaceRole.Factory);
                     }
-
-                    yield return instanceDeclaration;
                 }
 
                 if (isStatic || managerMembers.Count > 0)
                 {
-                    var managerDeclaration = InterfaceDeclaration(getApiTypeIdentifier(type, isManager: true))
-                        .WithBaseList(getBaseList(type))
-                        .WithMembers(List(managerMembers))
-                        .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
-
-                    if (type.IsGenericType)
-                    {
-                        managerDeclaration = managerDeclaration
-                            .WithConstraintClauses(List(getTypeConstraints(type)))
-                            .WithTypeParameterList(TypeParameterList(SeparatedList(getTypeParameters(type))));
-                    }
-
-                    yield return managerDeclaration;
+                    yield return createInterface(type, managerMembers, InterfaceRole.Manager);
                 }
             }
         }
 
-        private IEnumerable<(MemberDeclarationSyntax member, bool isManager)> getMembers(Type type, TypeNameResolver typeNameResolver)
+        private InterfaceDeclarationSyntax createInterface(Type type, IEnumerable<MemberDeclarationSyntax> members, InterfaceRole role)
+        {
+            var instanceDeclaration = InterfaceDeclaration(getApiTypeIdentifier(type, role))
+                .WithBaseList(getBaseList(type))
+                .WithMembers(List(members))
+                .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
+
+            if (type.IsGenericType)
+            {
+                instanceDeclaration = instanceDeclaration
+                    .WithConstraintClauses(List(getTypeConstraints(type)))
+                    .WithTypeParameterList(TypeParameterList(SeparatedList(getTypeParameters(type))));
+            }
+
+            return instanceDeclaration;
+        }
+
+        private enum InterfaceRole
+        {
+            Instance,
+            Factory,
+            Manager,
+        }
+
+        private IEnumerable<(MemberDeclarationSyntax member, InterfaceRole role)> getMembers(Type type, TypeNameResolver typeNameResolver)
         {
             foreach (MemberInfo memberInfo in type.GetMembers(AllPublicMembers))
             {
@@ -120,8 +135,11 @@ namespace Potter.ApiExtraction.Core.Generation
                 switch (memberInfo.MemberType)
                 {
                     case MemberTypes.Constructor:
-                        // TODO: Constructors should be added to a manager interface. (Daniel
-                        //       Potter, 11/8/2017)
+                        var constructorInfo = (ConstructorInfo) memberInfo;
+
+                        MethodDeclarationSyntax constructoMethodDeclaration = getConstructorMethod(constructorInfo, typeNameResolver);
+
+                        yield return (constructoMethodDeclaration, InterfaceRole.Factory);
                         break;
 
                     case MemberTypes.Event:
@@ -141,7 +159,7 @@ namespace Potter.ApiExtraction.Core.Generation
                                 .AddModifiers(Token(SyntaxKind.NewKeyword));
                         }
 
-                        yield return (eventDeclaration, false);
+                        yield return (eventDeclaration, eventInfo.AddMethod.IsStatic ? InterfaceRole.Manager : InterfaceRole.Instance);
                         break;
 
                     case MemberTypes.Field:
@@ -170,7 +188,7 @@ namespace Potter.ApiExtraction.Core.Generation
                                 .AddModifiers(Token(SyntaxKind.NewKeyword));
                         }
 
-                        yield return (methodDeclaration, methodInfo.IsStatic);
+                        yield return (methodDeclaration, methodInfo.IsStatic ? InterfaceRole.Manager : InterfaceRole.Instance);
                         break;
 
                     case MemberTypes.Property:
@@ -193,7 +211,7 @@ namespace Potter.ApiExtraction.Core.Generation
                             }
 
                             // Indexers cannot be static.
-                            yield return (indexerDeclaration, false);
+                            yield return (indexerDeclaration, InterfaceRole.Instance);
                         }
                         else
                         {
@@ -205,7 +223,7 @@ namespace Potter.ApiExtraction.Core.Generation
                                     .AddModifiers(Token(SyntaxKind.NewKeyword));
                             }
 
-                            yield return (propertyDeclaration, propertyInfo.GetAccessors()[0].IsStatic);
+                            yield return (propertyDeclaration, propertyInfo.GetAccessors()[0].IsStatic ? InterfaceRole.Manager : InterfaceRole.Instance);
                         }
                         break;
 
@@ -218,6 +236,18 @@ namespace Potter.ApiExtraction.Core.Generation
                         break;
                 }
             }
+        }
+
+        private MethodDeclarationSyntax getConstructorMethod(ConstructorInfo constructorInfo, TypeNameResolver typeNameResolver)
+        {
+            TypeSyntax returnTypeSyntax = IdentifierName(getApiTypeIdentifier(constructorInfo.DeclaringType, InterfaceRole.Instance));
+            TypeSyntax rawTypeSyntax = typeNameResolver.ResolveTypeName(constructorInfo.DeclaringType);
+
+            MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + rawTypeSyntax.ToString()))
+                .WithParameterList(ParameterList(SeparatedList(getParameters(typeNameResolver, constructorInfo.GetParameters()))))
+                .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
+
+            return methodDeclaration;
         }
 
         private EventFieldDeclarationSyntax getEvent(EventInfo eventInfo, TypeNameResolver typeNameResolver)
@@ -438,16 +468,16 @@ namespace Potter.ApiExtraction.Core.Generation
         {
             if (type.BaseType != null && type.BaseType != typeof(object))
             {
-                yield return SimpleBaseType(IdentifierName(getApiTypeIdentifier(type.BaseType)));
+                yield return SimpleBaseType(IdentifierName(getApiTypeIdentifier(type.BaseType, InterfaceRole.Instance)));
             }
 
             foreach (var implementedInterface in type.GetInterfaces())
             {
-                yield return SimpleBaseType(IdentifierName(getApiTypeIdentifier(implementedInterface)));
+                yield return SimpleBaseType(IdentifierName(getApiTypeIdentifier(implementedInterface, InterfaceRole.Instance)));
             }
         }
 
-        private SyntaxToken getApiTypeIdentifier(Type type, bool isManager = false)
+        private SyntaxToken getApiTypeIdentifier(Type type, InterfaceRole role)
         {
             var nameBuilder = new StringBuilder();
 
@@ -462,9 +492,15 @@ namespace Potter.ApiExtraction.Core.Generation
                 nameBuilder.Append(type.Name);
             }
 
-            if (isManager)
+            switch (role)
             {
-                nameBuilder.Append("Manager");
+                case InterfaceRole.Factory:
+                    nameBuilder.Append("Factory");
+                    break;
+
+                case InterfaceRole.Manager:
+                    nameBuilder.Append("Manager");
+                    break;
             }
 
             return Identifier(nameBuilder.ToString());
