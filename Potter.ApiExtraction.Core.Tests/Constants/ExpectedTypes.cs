@@ -21,6 +21,17 @@ namespace Potter.ApiExtraction.Core.Tests
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.EmptyClass)}",
                             },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.EmptyClass)}Factory",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.EmptyClass)}Create{nameof(Types.EmptyClass)}()",
+                                    },
+                                },
+                            },
                         },
                     },
                 },
@@ -58,6 +69,17 @@ namespace Potter.ApiExtraction.Core.Tests
                                     },
                                 },
                             },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.SimpleProperties)}Factory",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.SimpleProperties)}Create{nameof(Types.SimpleProperties)}()",
+                                    },
+                                },
+                            },
                         },
                     },
                 },
@@ -92,6 +114,17 @@ namespace Potter.ApiExtraction.Core.Tests
                                     new MemberExpectation(MemberType.Event)
                                     {
                                         Declaration = $"eventEventHandler{nameof(Types.SimpleEvents.EventProperty)};",
+                                    },
+                                },
+                            },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.SimpleEvents)}Factory",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.SimpleEvents)}Create{nameof(Types.SimpleEvents)}()",
                                     },
                                 },
                             },
@@ -133,6 +166,17 @@ namespace Potter.ApiExtraction.Core.Tests
                                     new MemberExpectation(MemberType.Indexer)
                                     {
                                         Declaration = $"stringthis[stringarg1]{{set;}}",
+                                    },
+                                },
+                            },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.IndexerProperties)}Factory",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.IndexerProperties)}Create{nameof(Types.IndexerProperties)}()",
                                     },
                                 },
                             },
@@ -185,6 +229,17 @@ namespace Potter.ApiExtraction.Core.Tests
                                     },
                                 },
                             },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.SimpleMethods)}Factory",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.SimpleMethods)}Create{nameof(Types.SimpleMethods)}()",
+                                    },
+                                },
+                            },
                         },
                     },
                 },
@@ -231,6 +286,17 @@ namespace Potter.ApiExtraction.Core.Tests
                                     new MemberExpectation(MemberType.Method)
                                     {
                                         Declaration = $"object{nameof(Types.GenericMethods.Function)}<T1,T2>(T1arg1,T2arg2)",
+                                    },
+                                },
+                            },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericMethods)}Factory",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.GenericMethods)}Create{nameof(Types.GenericMethods)}()",
                                     },
                                 },
                             },
@@ -284,6 +350,17 @@ namespace Potter.ApiExtraction.Core.Tests
                                     },
                                 },
                             },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericMethodsWithConstraints)}Factory",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.GenericMethodsWithConstraints)}<T1,T2>Create{nameof(Types.GenericMethodsWithConstraints)}()",
+                                    },
+                                },
+                            },
                         },
                     },
                 },
@@ -306,6 +383,17 @@ namespace Potter.ApiExtraction.Core.Tests
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClass<int>)}<T1>",
                             },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClass<int>)}Factory<T1>",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.GenericClass<int>)}<T1>Create{nameof(Types.GenericClass<int>)}()",
+                                    },
+                                },
+                            },
                         },
                     },
                 },
@@ -327,6 +415,17 @@ namespace Potter.ApiExtraction.Core.Tests
                             new TypeExpectation
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClass<int, int>)}<T1,T2>",
+                            },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClass<int, int>)}Factory<T1,T2>",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.GenericClass<int, int>)}<T1,T2>Create{nameof(Types.GenericClass<int, int>)}()",
+                                    },
+                                },
                             },
                         },
                     },
@@ -352,6 +451,17 @@ namespace Potter.ApiExtraction.Core.Tests
                                 Constraints =
                                 {
                                     "whereT1:class",
+                                },
+                            },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithClassConstraint<object>)}Factory<T1>",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.GenericClassWithClassConstraint<object>)}<T1>Create{nameof(Types.GenericClassWithClassConstraint<object>)}()",
+                                    },
                                 },
                             },
                         },
@@ -380,6 +490,17 @@ namespace Potter.ApiExtraction.Core.Tests
                                     "whereT1:struct",
                                 },
                             },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithValueConstraint<int>)}Factory<T1>",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.GenericClassWithValueConstraint<int>)}<T1>Create{nameof(Types.GenericClassWithValueConstraint<int>)}()",
+                                    },
+                                },
+                            },
                         },
                     },
                 },
@@ -405,6 +526,17 @@ namespace Potter.ApiExtraction.Core.Tests
                                 {
                                     "whereT1:class",
                                     "whereT2:struct",
+                                },
+                            },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithMultipleConstraints<object, int>)}Factory<T1,T2>",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.GenericClassWithMultipleConstraints<object, int>)}<T1,T2>Create{nameof(Types.GenericClassWithMultipleConstraints<object, int>)}()",
+                                    },
                                 },
                             },
                         },
