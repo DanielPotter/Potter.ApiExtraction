@@ -108,7 +108,7 @@ namespace Potter.ApiExtraction.Core.Generation
             if (type.IsGenericType)
             {
                 instanceDeclaration = instanceDeclaration
-                    .WithConstraintClauses(List(getTypeConstraints(type)))
+                    .WithConstraintClauses(List(getTypeConstraints(type, typeNameResolver)))
                     .WithTypeParameterList(TypeParameterList(SeparatedList(getTypeParameters(type))));
             }
 
@@ -260,7 +260,7 @@ namespace Potter.ApiExtraction.Core.Generation
             if (methodInfo.IsGenericMethod)
             {
                 methodDeclaration = methodDeclaration
-                    .WithConstraintClauses(List(getTypeConstraints(methodInfo)))
+                    .WithConstraintClauses(List(getTypeConstraints(methodInfo, typeNameResolver)))
                     .WithTypeParameterList(TypeParameterList(SeparatedList(getTypeParameters(methodInfo))));
             }
 
@@ -340,107 +340,88 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private IEnumerable<TypeParameterSyntax> getTypeParameters(Type type)
         {
-            if (type.IsGenericType == false)
-            {
-                yield break;
-            }
-
             Type typeDefinition = type.IsGenericTypeDefinition ? type : type.GetGenericTypeDefinition();
 
-            foreach (Type typeArgument in typeDefinition.GetGenericArguments())
-            {
-                yield return TypeParameter(typeArgument.Name);
-            }
-        }
-
-        private IEnumerable<TypeParameterConstraintClauseSyntax> getTypeConstraints(Type type)
-        {
-            if (type.IsGenericType == false)
-            {
-                yield break;
-            }
-
-            Type typeDefinition = type.IsGenericTypeDefinition ? type : type.GetGenericTypeDefinition();
-
-            foreach (Type typeArgument in typeDefinition.GetGenericArguments())
-            {
-                Type[] typeConstraints = typeArgument.GetGenericParameterConstraints();
-
-                if (typeConstraints.Length == 0)
-                {
-                    continue;
-                }
-
-                yield return TypeParameterConstraintClause(typeArgument.Name)
-                    .WithConstraints(SeparatedList(
-                        typeConstraints.Select<Type, TypeParameterConstraintSyntax>(
-                            typeConstraint => TypeConstraint(IdentifierName(typeConstraint.Name))
-                        )
-                    ));
-            }
+            return getTypeParameters(typeDefinition.GetGenericArguments());
         }
 
         private IEnumerable<TypeParameterSyntax> getTypeParameters(MethodInfo methodInfo)
         {
             MethodInfo methodDefinition = methodInfo.IsGenericMethodDefinition ? methodInfo : methodInfo.GetGenericMethodDefinition();
 
-            foreach (Type typeArgument in methodDefinition.GetGenericArguments())
-            {
-                TypeParameterSyntax typeParameterDeclaration = TypeParameter(typeArgument.Name);
+            return getTypeParameters(methodDefinition.GetGenericArguments());
+        }
 
-                // TODO: Verify this the right order.
+        private IEnumerable<TypeParameterSyntax> getTypeParameters(IEnumerable<Type> genericArguments)
+        {
+            foreach (Type typeArgument in genericArguments)
+            {
+                TypeParameterSyntax typeParameter = TypeParameter(typeArgument.Name);
+
                 if (typeArgument.GenericParameterAttributes.HasFlag(GenericParameterAttributes.Covariant))
                 {
-                    typeParameterDeclaration = typeParameterDeclaration
+                    typeParameter = typeParameter
                         .WithVarianceKeyword(Token(SyntaxKind.OutKeyword));
                 }
                 else if (typeArgument.GenericParameterAttributes.HasFlag(GenericParameterAttributes.Contravariant))
                 {
-                    typeParameterDeclaration = typeParameterDeclaration
+                    typeParameter = typeParameter
                         .WithVarianceKeyword(Token(SyntaxKind.InKeyword));
                 }
 
-                yield return typeParameterDeclaration;
+                yield return typeParameter;
             }
         }
 
-        private IEnumerable<TypeParameterConstraintClauseSyntax> getTypeConstraints(MethodInfo methodInfo)
+        private IEnumerable<TypeParameterConstraintClauseSyntax> getTypeConstraints(Type type, TypeNameResolver typeNameResolver)
+        {
+            Type typeDefinition = type.IsGenericTypeDefinition ? type : type.GetGenericTypeDefinition();
+
+            return getTypeConstraints(typeDefinition.GetGenericArguments(), typeNameResolver);
+        }
+
+        private IEnumerable<TypeParameterConstraintClauseSyntax> getTypeConstraints(MethodInfo methodInfo, TypeNameResolver typeNameResolver)
         {
             MethodInfo methodDefinition = methodInfo.IsGenericMethodDefinition ? methodInfo : methodInfo.GetGenericMethodDefinition();
 
-            foreach (Type typeArgument in methodDefinition.GetGenericArguments())
-            {
-                Type[] typeConstraints = typeArgument.GetGenericParameterConstraints();
+            return getTypeConstraints(methodDefinition.GetGenericArguments(), typeNameResolver);
+        }
 
-                var constraintList = new List<TypeParameterConstraintSyntax>();
+        private IEnumerable<TypeParameterConstraintClauseSyntax> getTypeConstraints(IEnumerable<Type> genericArguments, TypeNameResolver typeNameResolver)
+        {
+            foreach (Type typeArgument in genericArguments)
+            {
+                var typeConstraints = new List<TypeParameterConstraintSyntax>();
 
                 if (typeArgument.GenericParameterAttributes.HasFlag(GenericParameterAttributes.ReferenceTypeConstraint))
                 {
-                    constraintList.Add(ClassOrStructConstraint(SyntaxKind.ClassConstraint));
+                    typeConstraints.Add(ClassOrStructConstraint(SyntaxKind.ClassConstraint));
 
                     if (typeArgument.GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
                     {
-                        constraintList.Add(ConstructorConstraint());
+                        typeConstraints.Add(ConstructorConstraint());
                     }
                 }
                 else if (typeArgument.GenericParameterAttributes.HasFlag(GenericParameterAttributes.NotNullableValueTypeConstraint))
                 {
-                    constraintList.Add(ClassOrStructConstraint(SyntaxKind.StructConstraint));
+                    typeConstraints.Add(ClassOrStructConstraint(SyntaxKind.StructConstraint));
                 }
 
-                if (typeConstraints.Length == 0)
+                Type[] constraintTypes = typeArgument.GetGenericParameterConstraints();
+
+                if (constraintTypes.Length > 0)
                 {
-                    constraintList.AddRange(
-                        typeConstraints.Select<Type, TypeParameterConstraintSyntax>(
-                            typeConstraint => TypeConstraint(IdentifierName(typeConstraint.Name))
+                    typeConstraints.AddRange(
+                        constraintTypes.Select<Type, TypeParameterConstraintSyntax>(
+                            constraintType => TypeConstraint(typeNameResolver.ResolveTypeName(constraintType))
                         )
                     );
                 }
 
-                if (constraintList.Count > 0)
+                if (typeConstraints.Count > 0)
                 {
                     yield return TypeParameterConstraintClause(typeArgument.Name)
-                        .WithConstraints(SeparatedList(constraintList));
+                        .WithConstraints(SeparatedList(typeConstraints));
                 }
             }
         }

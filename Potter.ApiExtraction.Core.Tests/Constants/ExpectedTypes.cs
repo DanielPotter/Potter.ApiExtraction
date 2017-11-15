@@ -456,6 +456,10 @@ namespace Potter.ApiExtraction.Core.Tests
                             new TypeExpectation
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithClassConstraint<object>)}Factory<T1>",
+                                Constraints =
+                                {
+                                    "whereT1:class",
+                                },
                                 Members =
                                 {
                                     new MemberExpectation(MemberType.Method)
@@ -493,6 +497,10 @@ namespace Potter.ApiExtraction.Core.Tests
                             new TypeExpectation
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithValueConstraint<int>)}Factory<T1>",
+                                Constraints =
+                                {
+                                    "whereT1:struct",
+                                },
                                 Members =
                                 {
                                     new MemberExpectation(MemberType.Method)
@@ -531,6 +539,11 @@ namespace Potter.ApiExtraction.Core.Tests
                             new TypeExpectation
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithMultipleConstraints<object, int>)}Factory<T1,T2>",
+                                Constraints =
+                                {
+                                    "whereT1:class",
+                                    "whereT2:struct",
+                                },
                                 Members =
                                 {
                                     new MemberExpectation(MemberType.Method)
