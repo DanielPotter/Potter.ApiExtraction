@@ -357,7 +357,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                 {
                                     new MemberExpectation(MemberType.Method)
                                     {
-                                        Declaration = $"I{nameof(Types.GenericMethodsWithConstraints)}<T1,T2>Create{nameof(Types.GenericMethodsWithConstraints)}()",
+                                        Declaration = $"I{nameof(Types.GenericMethodsWithConstraints)}Create{nameof(Types.GenericMethodsWithConstraints)}()",
                                     },
                                 },
                             },

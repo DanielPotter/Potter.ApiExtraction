@@ -83,25 +83,25 @@ namespace Potter.ApiExtraction.Core.Generation
 
                 if (isStatic == false)
                 {
-                    yield return createInterface(type, instanceMembers, InterfaceRole.Instance);
+                    yield return createInterface(type, instanceMembers, typeNameResolver, InterfaceRole.Instance);
 
                     if (factoryMembers.Count > 0)
                     {
-                        yield return createInterface(type, factoryMembers, InterfaceRole.Factory);
+                        yield return createInterface(type, factoryMembers, typeNameResolver, InterfaceRole.Factory);
                     }
                 }
 
                 if (isStatic || managerMembers.Count > 0)
                 {
-                    yield return createInterface(type, managerMembers, InterfaceRole.Manager);
+                    yield return createInterface(type, managerMembers, typeNameResolver, InterfaceRole.Manager);
                 }
             }
         }
 
-        private InterfaceDeclarationSyntax createInterface(Type type, IEnumerable<MemberDeclarationSyntax> members, InterfaceRole role)
+        private InterfaceDeclarationSyntax createInterface(Type type, IEnumerable<MemberDeclarationSyntax> members, TypeNameResolver typeNameResolver, InterfaceRole role)
         {
-            var instanceDeclaration = InterfaceDeclaration(getApiTypeIdentifier(type, role))
-                .WithBaseList(getBaseList(type))
+            var instanceDeclaration = InterfaceDeclaration(typeNameResolver.GetApiTypeIdentifier(type, role))
+                .WithBaseList(getBaseList(type, typeNameResolver))
                 .WithMembers(List(members))
                 .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
 
@@ -113,13 +113,6 @@ namespace Potter.ApiExtraction.Core.Generation
             }
 
             return instanceDeclaration;
-        }
-
-        private enum InterfaceRole
-        {
-            Instance,
-            Factory,
-            Manager,
         }
 
         private IEnumerable<(MemberDeclarationSyntax member, InterfaceRole role)> getMembers(Type type, TypeNameResolver typeNameResolver)
@@ -240,8 +233,8 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private MethodDeclarationSyntax getConstructorMethod(ConstructorInfo constructorInfo, TypeNameResolver typeNameResolver)
         {
-            TypeSyntax returnTypeSyntax = IdentifierName(getApiTypeIdentifier(constructorInfo.DeclaringType, InterfaceRole.Instance));
-            TypeSyntax rawTypeSyntax = typeNameResolver.ResolveTypeName(constructorInfo.DeclaringType);
+            TypeSyntax returnTypeSyntax = typeNameResolver.GetApiTypeIdentifierName(constructorInfo.DeclaringType, InterfaceRole.Instance);
+            TypeSyntax rawTypeSyntax = typeNameResolver.ResolveTypeName(constructorInfo.DeclaringType, includeTypeArguments: false);
 
             MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + rawTypeSyntax.ToString()))
                 .WithParameterList(ParameterList(SeparatedList(getParameters(typeNameResolver, constructorInfo.GetParameters()))))
@@ -452,9 +445,9 @@ namespace Potter.ApiExtraction.Core.Generation
             }
         }
 
-        private BaseListSyntax getBaseList(Type type)
+        private BaseListSyntax getBaseList(Type type, TypeNameResolver typeNameResolver)
         {
-            var baseTypes = getBaseTypes(type).ToList();
+            var baseTypes = getBaseTypes(type, typeNameResolver).ToList();
 
             if (baseTypes.Count == 0)
             {
@@ -464,46 +457,17 @@ namespace Potter.ApiExtraction.Core.Generation
             return BaseList(SeparatedList(baseTypes));
         }
 
-        private IEnumerable<BaseTypeSyntax> getBaseTypes(Type type)
+        private IEnumerable<BaseTypeSyntax> getBaseTypes(Type type, TypeNameResolver typeNameResolver)
         {
             if (type.BaseType != null && type.BaseType != typeof(object))
             {
-                yield return SimpleBaseType(IdentifierName(getApiTypeIdentifier(type.BaseType, InterfaceRole.Instance)));
+                yield return SimpleBaseType(typeNameResolver.GetApiTypeIdentifierName(type.BaseType, InterfaceRole.Instance));
             }
 
             foreach (var implementedInterface in type.GetInterfaces())
             {
-                yield return SimpleBaseType(IdentifierName(getApiTypeIdentifier(implementedInterface, InterfaceRole.Instance)));
+                yield return SimpleBaseType(typeNameResolver.GetApiTypeIdentifierName(implementedInterface, InterfaceRole.Instance));
             }
-        }
-
-        private SyntaxToken getApiTypeIdentifier(Type type, InterfaceRole role)
-        {
-            var nameBuilder = new StringBuilder();
-
-            nameBuilder.Append('I');
-
-            if (type.IsGenericType)
-            {
-                nameBuilder.Append(type.Name.Substring(0, type.Name.IndexOf('`')));
-            }
-            else
-            {
-                nameBuilder.Append(type.Name);
-            }
-
-            switch (role)
-            {
-                case InterfaceRole.Factory:
-                    nameBuilder.Append("Factory");
-                    break;
-
-                case InterfaceRole.Manager:
-                    nameBuilder.Append("Manager");
-                    break;
-            }
-
-            return Identifier(nameBuilder.ToString());
         }
     }
 
