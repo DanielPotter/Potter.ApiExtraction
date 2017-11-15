@@ -70,7 +70,7 @@ namespace Potter.ApiExtraction.Core.Generation
             return Identifier(nameBuilder.ToString());
         }
 
-        public TypeSyntax ResolveTypeName(Type type, bool includeTypeArguments = true)
+        public TypeSyntax ResolveTypeName(Type type, bool includeTypeArguments = true, bool ignoreNamespace = false)
         {
             if (type.IsGenericParameter)
             {
@@ -105,7 +105,10 @@ namespace Potter.ApiExtraction.Core.Generation
 
             if (SimplifyNamespaces)
             {
-                _namespaces.Add(type.Namespace);
+                if (ignoreNamespace == false)
+                {
+                    _namespaces.Add(type.Namespace);
+                }
 
                 return typeNameSyntax;
             }

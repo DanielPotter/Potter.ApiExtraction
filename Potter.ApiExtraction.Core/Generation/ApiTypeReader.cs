@@ -26,7 +26,7 @@ namespace Potter.ApiExtraction.Core.Generation
             }
 
             NamespaceDeclarationSyntax namespaceDeclaration = ReadNamespace(type, typeNameResolver);
-            IEnumerable<string> usings = typeNameResolver.GetRegisteredNamespaces().Where(namespaceName => namespaceName != namespaceDeclaration.Name.ToString());
+            IEnumerable<string> usings = typeNameResolver.GetRegisteredNamespaces();
 
             var compilationUnit = CompilationUnit()
                 .WithMembers(SingletonList<MemberDeclarationSyntax>(namespaceDeclaration));
@@ -234,7 +234,7 @@ namespace Potter.ApiExtraction.Core.Generation
         private MethodDeclarationSyntax getConstructorMethod(ConstructorInfo constructorInfo, TypeNameResolver typeNameResolver)
         {
             TypeSyntax returnTypeSyntax = typeNameResolver.GetApiTypeIdentifierName(constructorInfo.DeclaringType, InterfaceRole.Instance);
-            TypeSyntax rawTypeSyntax = typeNameResolver.ResolveTypeName(constructorInfo.DeclaringType, includeTypeArguments: false);
+            TypeSyntax rawTypeSyntax = typeNameResolver.ResolveTypeName(constructorInfo.DeclaringType, includeTypeArguments: false, ignoreNamespace: true);
 
             MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + rawTypeSyntax.ToString()))
                 .WithParameterList(ParameterList(SeparatedList(getParameters(typeNameResolver, constructorInfo.GetParameters()))))
@@ -409,13 +409,14 @@ namespace Potter.ApiExtraction.Core.Generation
 
                 Type[] constraintTypes = typeArgument.GetGenericParameterConstraints();
 
-                if (constraintTypes.Length > 0)
+                foreach (Type constraintType in constraintTypes)
                 {
-                    typeConstraints.AddRange(
-                        constraintTypes.Select<Type, TypeParameterConstraintSyntax>(
-                            constraintType => TypeConstraint(typeNameResolver.ResolveTypeName(constraintType))
-                        )
-                    );
+                    if (constraintType == typeof(ValueType))
+                    {
+                        continue;
+                    }
+
+                    typeConstraints.Add(TypeConstraint(typeNameResolver.ResolveTypeName(constraintType)));
                 }
 
                 if (typeConstraints.Count > 0)
