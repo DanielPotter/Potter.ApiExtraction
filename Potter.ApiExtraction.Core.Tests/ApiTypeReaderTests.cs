@@ -12,6 +12,8 @@ namespace Potter.ApiExtraction.Core.Tests
     [TestClass]
     public class ApiTypeReaderTests
     {
+        #region Read
+
         [TestMethod]
         public void Read_EmptyClass()
         {
@@ -188,6 +190,23 @@ namespace Potter.ApiExtraction.Core.Tests
             ReadExpectation(apiTypeReader, expectation);
         }
 
+        #endregion
+
+        #region ReadAssembly
+
+        [TestMethod]
+        public void ReadAssembly_SimpleClass()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            ExpectationForAssembly expectation = ExpectedTypes.SubsetSimpleClass;
+
+            // Assert
+            ReadAssemblyExpectation(apiTypeReader, expectation);
+        }
+
+        #endregion
+
         #region Helpers
 
         public static void ReadExpectation(ApiTypeReader typeReader, Expectation expectation)
@@ -202,6 +221,23 @@ namespace Potter.ApiExtraction.Core.Tests
 
             // Assert
             AssertCompilationUnit(expectation.CompilationUnit, compilationUnit);
+        }
+
+        public static void ReadAssemblyExpectation(ApiTypeReader typeReader, ExpectationForAssembly expectation)
+        {
+            var typeNameResolver = new TypeNameResolver
+            {
+                SimplifyNamespaces = true,
+            };
+
+            // Act
+            IEnumerable<CompilationUnitSyntax> compilationUnits = typeReader.ReadAssembly(expectation.Assembly, expectation.Configuration, typeNameResolver);
+
+            // Assert
+            AssertSequence(expectation.CompilationUnits, compilationUnits, (expected, actual) =>
+            {
+                AssertCompilationUnit(expected, actual);
+            });
         }
 
         public static void AssertCompilationUnit(CompilationUnitExpectation expected, CompilationUnitSyntax actual)

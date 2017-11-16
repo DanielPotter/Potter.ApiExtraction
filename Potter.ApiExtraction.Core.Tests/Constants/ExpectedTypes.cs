@@ -1,9 +1,11 @@
 using System;
 using Potter.ApiExtraction.Core.Tests.Constants;
 
+#region Type Expectations
+
 namespace Potter.ApiExtraction.Core.Tests
 {
-    public static class ExpectedTypes
+    public static partial class ExpectedTypes
     {
         public static Expectation EmptyClass { get; } = new Expectation
         {
@@ -975,3 +977,101 @@ namespace Potter.ApiExtraction.Types
         }
     }
 }
+
+#endregion
+
+#region Assembly Expectations
+
+namespace Potter.ApiExtraction.Core.Tests
+{
+    public static partial class ExpectedTypes
+    {
+        public static ExpectationForAssembly SubsetSimpleClass { get; } = new ExpectationForAssembly
+        {
+            Assembly = typeof(Types.Subset.SimpleClass).Assembly,
+            Configuration = new ApiElement
+            {
+                Items = new TypeSelectorElementBase[]
+                {
+                    new ClearTypeSelectorElement(),
+                    new AddTypeRefinableSelectorElement
+                    {
+                        Namespace = typeof(Types.Subset.SimpleClass).Namespace,
+                    },
+                },
+            },
+            CompilationUnits =
+            {
+                new CompilationUnitExpectation
+                {
+                    Namespaces =
+                    {
+                        new NamespaceExpectation
+                        {
+                            Namespace = typeof(Types.Subset.SimpleClass).Namespace,
+                            Types =
+                            {
+                                new TypeExpectation
+                                {
+                                    Declaration = $"publicinterfaceI{nameof(Types.Subset.SimpleClass)}",
+                                    Members =
+                                    {
+                                        new MemberExpectation(MemberType.Property)
+                                        {
+                                            Declaration = "intValue{get;set;}",
+                                        },
+                                        new MemberExpectation(MemberType.Indexer)
+                                        {
+                                            Declaration = "stringthis[intkey]{get;set;}",
+                                        },
+                                        new MemberExpectation(MemberType.Event)
+                                        {
+                                            Declaration = "eventEventHandlerChanged;",
+                                        },
+                                        new MemberExpectation(MemberType.Method)
+                                        {
+                                            Declaration = "voidReset()",
+                                        },
+                                    },
+                                },
+                                new TypeExpectation
+                                {
+                                    Declaration = $"publicinterfaceI{nameof(Types.Subset.SimpleClass)}Factory",
+                                    Members =
+                                    {
+                                        new MemberExpectation(MemberType.Method)
+                                        {
+                                            Declaration = $"I{nameof(Types.Subset.SimpleClass)}Create{nameof(Types.Subset.SimpleClass)}()",
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+    }
+}
+
+namespace Potter.ApiExtraction.Types.Subset
+{
+    public class SimpleClass
+    {
+        public int Value { get; set; }
+
+        public string this[int key]
+        {
+            get { return null; }
+            set { }
+        }
+
+        public event EventHandler Changed;
+
+        public void Reset()
+        {
+        }
+    }
+}
+
+#endregion

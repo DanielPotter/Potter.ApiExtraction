@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema
+  attributeFormDefault="unqualified"
+  elementFormDefault="qualified"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://schemas.danielrpotter.com/api/configuration/2017"
+  xmlns="http://schemas.danielrpotter.com/api/configuration/2017"
+  >
+  <xs:element name="Api" type="ApiConfiguration">
+    <xs:annotation>
+      <xs:documentation>
+        Schema for the API selection files.
+      </xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="ApiConfiguration">
+    <xs:annotation>
+      <xs:documentation>
+        This document defines the assembly for which an API should be generated,
+        and the code generation options and filters.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="Assembly" type="AssemblyElement" />
+      <xs:element name="Types">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" maxOccurs="unbounded" name="AddType" type="TypeSelector" />
+            <xs:element minOccurs="0" maxOccurs="unbounded" name="AddNamespace" type="NamespaceSelector" />
+            <xs:element minOccurs="0" maxOccurs="unbounded" name="RemoveType" type="TypeSelector" />
+            <xs:element minOccurs="0" maxOccurs="unbounded" name="RemoveNamespace" type="NamespaceSelector" />
+          </xs:sequence>
+          <xs:attribute name="Clear" type="xs:boolean" use="optional" default="false" />
+          <xs:attribute name="RemoveObsolete" type="xs:boolean" use="optional" default="true" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="AssemblyElement">
+    <xs:annotation>
+      <xs:documentation>
+        Describes how types should be read for a particular assembly.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="Name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          The assembly name from which types should be read.
+          You can use the 'Location' attribute to specify a path to the assembly to read.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="Location" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>The assembly full path name.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="TypeSelector">
+    <xs:annotation>
+      <xs:documentation>
+        Describes how types should be selected.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="FullName" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>The namespace qualified name of the type.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="NamespaceSelector">
+    <xs:annotation>
+      <xs:documentation>
+        Describes how namespaces should be selected.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="Name" type="xs:string" use="required" />
+    <xs:attribute name="Recursive" type="xs:boolean" use="optional" default="false">
+      <xs:annotation>
+        <xs:documentation>An optional filter to include children of this namespace.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+</xs:schema>

@@ -15,14 +15,43 @@ namespace Potter.ApiExtraction.Core.Generation
     {
         private const BindingFlags AllPublicMembers = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Static;
 
+        public IEnumerable<CompilationUnitSyntax> ReadAssembly(Assembly assembly, ApiElement configuration, TypeNameResolver typeNameResolver = null)
+        {
+            if (typeNameResolver == null)
+            {
+                typeNameResolver = new TypeNameResolver();
+            }
+
+            foreach (Type type in findConfiguredTypes(assembly.ExportedTypes, configuration.Items))
+            {
+                yield return ReadCompilationUnit(type, typeNameResolver);
+            }
+        }
+
+        private IList<Type> findConfiguredTypes(IEnumerable<Type> types, IEnumerable<TypeSelectorElementBase> typeSelectors)
+        {
+            var selectedTypes = new List<Type>();
+
+            foreach (var typeSelector in typeSelectors)
+            {
+                switch (typeSelector)
+                {
+                    case ClearTypeSelectorElement clearSelector:
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            return selectedTypes;
+        }
+
         public CompilationUnitSyntax ReadCompilationUnit(Type type, TypeNameResolver typeNameResolver = null)
         {
             if (typeNameResolver == null)
             {
-                typeNameResolver = new TypeNameResolver
-                {
-                    SimplifyNamespaces = false,
-                };
+                typeNameResolver = new TypeNameResolver();
             }
 
             NamespaceDeclarationSyntax namespaceDeclaration = ReadNamespace(type, typeNameResolver);
@@ -41,10 +70,7 @@ namespace Potter.ApiExtraction.Core.Generation
         {
             if (typeNameResolver == null)
             {
-                typeNameResolver = new TypeNameResolver
-                {
-                    SimplifyNamespaces = false,
-                };
+                typeNameResolver = new TypeNameResolver();
             }
 
             return NamespaceDeclaration(IdentifierName(type.Namespace))

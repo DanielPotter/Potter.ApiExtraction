@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Api>
+  <Assembly Name="mscorlib" />
+  <Types Clear="true" RemoveObsolete="true">
+    <AddType FullName="System.TimeZoneInfo" />
+    <AddType FullName="System.TimeZoneInfo" />
+    <AddNamespace Name="System.IO" Recursive="true" />
+    <AddNamespace Name="System.IO" Recursive="true" />
+    <RemoveType FullName="System.IO.BinaryReader" />
+    <RemoveType FullName="System.IO.BinaryReader" />
+    <RemoveNamespace Name="System.IO.Pipes" Recursive="true" />
+    <RemoveNamespace Name="System.IO.Pipes" Recursive="true" />
+  </Types>
+</Api>
