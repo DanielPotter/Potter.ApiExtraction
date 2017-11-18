@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Potter.ApiExtraction.Core.Configuration;
 
 namespace Potter.ApiExtraction.Core.Tests.Constants
 {
@@ -8,7 +9,7 @@ namespace Potter.ApiExtraction.Core.Tests.Constants
     {
         public Assembly Assembly { get; set; }
 
-        public ApiElement Configuration { get; set; }
+        public ApiConfiguration Configuration { get; set; }
 
         public List<CompilationUnitExpectation> CompilationUnits { get; set; } = new List<CompilationUnitExpectation>();
 

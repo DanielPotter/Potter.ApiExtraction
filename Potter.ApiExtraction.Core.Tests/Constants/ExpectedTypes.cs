@@ -1,4 +1,5 @@
 using System;
+using Potter.ApiExtraction.Core.Configuration;
 using Potter.ApiExtraction.Core.Tests.Constants;
 
 #region Type Expectations
@@ -989,14 +990,17 @@ namespace Potter.ApiExtraction.Core.Tests
         public static ExpectationForAssembly SubsetSimpleClass { get; } = new ExpectationForAssembly
         {
             Assembly = typeof(Types.Subset.SimpleClass).Assembly,
-            Configuration = new ApiElement
+            Configuration = new ApiConfiguration
             {
-                Items = new TypeSelectorElementBase[]
+                Types = new ApiConfigurationTypes
                 {
-                    new ClearTypeSelectorElement(),
-                    new AddTypeRefinableSelectorElement
+                    Mode = TypeMode.Whitelist,
+                    Items = new MemberSelector[]
                     {
-                        Namespace = typeof(Types.Subset.SimpleClass).Namespace,
+                        new NamespaceSelector
+                        {
+                            Name = typeof(Types.Subset.SimpleClass).Namespace,
+                        },
                     },
                 },
             },
@@ -1004,6 +1008,10 @@ namespace Potter.ApiExtraction.Core.Tests
             {
                 new CompilationUnitExpectation
                 {
+                    Usings =
+                    {
+                        "usingSystem;",
+                    },
                     Namespaces =
                     {
                         new NamespaceExpectation
@@ -1016,6 +1024,10 @@ namespace Potter.ApiExtraction.Core.Tests
                                     Declaration = $"publicinterfaceI{nameof(Types.Subset.SimpleClass)}",
                                     Members =
                                     {
+                                        new MemberExpectation(MemberType.Method)
+                                        {
+                                            Declaration = "voidReset()",
+                                        },
                                         new MemberExpectation(MemberType.Property)
                                         {
                                             Declaration = "intValue{get;set;}",
@@ -1027,10 +1039,6 @@ namespace Potter.ApiExtraction.Core.Tests
                                         new MemberExpectation(MemberType.Event)
                                         {
                                             Declaration = "eventEventHandlerChanged;",
-                                        },
-                                        new MemberExpectation(MemberType.Method)
-                                        {
-                                            Declaration = "voidReset()",
                                         },
                                     },
                                 },

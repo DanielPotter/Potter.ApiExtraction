@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Potter.ApiExtraction.Core.Configuration;
 
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -15,37 +14,67 @@ namespace Potter.ApiExtraction.Core.Generation
     {
         private const BindingFlags AllPublicMembers = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Static;
 
-        public IEnumerable<CompilationUnitSyntax> ReadAssembly(Assembly assembly, ApiElement configuration, TypeNameResolver typeNameResolver = null)
+        #region Assembly Reading
+
+        public IEnumerable<CompilationUnitSyntax> ReadAssembly(Assembly assembly, ApiConfiguration configuration, TypeNameResolver typeNameResolver = null)
         {
             if (typeNameResolver == null)
             {
                 typeNameResolver = new TypeNameResolver();
             }
 
-            foreach (Type type in findConfiguredTypes(assembly.ExportedTypes, configuration.Items))
+            foreach (Type type in findConfiguredTypes(assembly.ExportedTypes, configuration.Types))
             {
                 yield return ReadCompilationUnit(type, typeNameResolver);
             }
         }
 
-        private IList<Type> findConfiguredTypes(IEnumerable<Type> types, IEnumerable<TypeSelectorElementBase> typeSelectors)
+        private IEnumerable<Type> findConfiguredTypes(IEnumerable<Type> types, ApiConfigurationTypes typesConfiguration)
         {
-            var selectedTypes = new List<Type>();
+            bool addMatches = typesConfiguration.Mode == TypeMode.Whitelist;
 
-            foreach (var typeSelector in typeSelectors)
+            foreach (Type type in types)
             {
-                switch (typeSelector)
+                bool matches = isMatch(type, typesConfiguration.Items);
+
+                if (matches == addMatches)
                 {
-                    case ClearTypeSelectorElement clearSelector:
+                    yield return type;
+                }
+            }
+        }
+
+        private bool isMatch(Type type, IEnumerable<MemberSelector> selectors)
+        {
+            foreach (var selector in selectors)
+            {
+                switch (selector)
+                {
+                    case TypeSelector typeSelector:
+                        if (string.Equals(type.Name, selector.Name))
+                        {
+                            return true;
+                        }
                         break;
 
-                    default:
+                    case NamespaceSelector namespaceSelector:
+                        if (string.Equals(type.Namespace, selector.Name))
+                        {
+                            return true;
+                        }
+
+                        if (namespaceSelector.Recursive && type.Namespace.StartsWith(selector.Name + "."))
+                        {
+                            return true;
+                        }
                         break;
                 }
             }
 
-            return selectedTypes;
+            return false;
         }
+
+        #endregion
 
         public CompilationUnitSyntax ReadCompilationUnit(Type type, TypeNameResolver typeNameResolver = null)
         {

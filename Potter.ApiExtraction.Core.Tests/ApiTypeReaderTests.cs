@@ -333,7 +333,7 @@ namespace Potter.ApiExtraction.Core.Tests
             {
                 if (actualEnumerator.MoveNext() == false)
                 {
-                    Assert.AreEqual(expected.Count(), actual.Count(), "Too few items.");
+                    Assert.AreEqual(expected.Count(), actual.Count(), $"Too few items.  Expected:<{expectedEnumerator.Current}>");
                 }
 
                 assert(expectedEnumerator.Current, actualEnumerator.Current);
@@ -341,7 +341,7 @@ namespace Potter.ApiExtraction.Core.Tests
 
             if (actualEnumerator.MoveNext())
             {
-                Assert.AreEqual(expected.Count(), actual.Count(), "Too many items.");
+                Assert.AreEqual(expected.Count(), actual.Count(), $"Too many items.  Actual:<{actualEnumerator.Current}>");
             }
         }
 

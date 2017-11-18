@@ -26,13 +26,13 @@
       <xs:element name="Types">
         <xs:complexType>
           <xs:sequence>
-            <xs:element minOccurs="0" maxOccurs="unbounded" name="AddType" type="TypeSelector" />
-            <xs:element minOccurs="0" maxOccurs="unbounded" name="AddNamespace" type="NamespaceSelector" />
-            <xs:element minOccurs="0" maxOccurs="unbounded" name="RemoveType" type="TypeSelector" />
-            <xs:element minOccurs="0" maxOccurs="unbounded" name="RemoveNamespace" type="NamespaceSelector" />
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+              <xs:element name="Type" type="TypeSelector" />
+              <xs:element name="Namespace" type="NamespaceSelector" />
+            </xs:choice>
           </xs:sequence>
-          <xs:attribute name="Clear" type="xs:boolean" use="optional" default="false" />
-          <xs:attribute name="RemoveObsolete" type="xs:boolean" use="optional" default="true" />
+          <xs:attribute name="Mode" type="TypeMode" use="optional" default="Whitelist" />
+          <xs:attribute name="IncludeObsolete" type="xs:boolean" use="optional" default="false" />
         </xs:complexType>
       </xs:element>
     </xs:sequence>
@@ -59,30 +59,47 @@
     </xs:attribute>
   </xs:complexType>
 
-  <xs:complexType name="TypeSelector">
-    <xs:annotation>
-      <xs:documentation>
-        Describes how types should be selected.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:attribute name="FullName" type="xs:string" use="required">
+  <xs:simpleType name="TypeMode">
+    <xs:restriction base="xs:normalizedString">
+      <xs:enumeration value="Whitelist" />
+      <xs:enumeration value="Blacklist" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="MemberSelector" abstract="true">
+    <xs:attribute name="Name" type="xs:string" use="required">
       <xs:annotation>
-        <xs:documentation>The namespace qualified name of the type.</xs:documentation>
+        <xs:documentation>The namespace name or namespace qualified type name.</xs:documentation>
       </xs:annotation>
     </xs:attribute>
   </xs:complexType>
 
+  <xs:complexType name="TypeSelector">
+    <xs:complexContent>
+      <xs:extension base="MemberSelector">
+        <xs:annotation>
+          <xs:documentation>
+            Describes how types should be selected.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
   <xs:complexType name="NamespaceSelector">
-    <xs:annotation>
-      <xs:documentation>
-        Describes how namespaces should be selected.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:attribute name="Name" type="xs:string" use="required" />
-    <xs:attribute name="Recursive" type="xs:boolean" use="optional" default="false">
-      <xs:annotation>
-        <xs:documentation>An optional filter to include children of this namespace.</xs:documentation>
-      </xs:annotation>
-    </xs:attribute>
+    <xs:complexContent>
+      <xs:extension base="MemberSelector">
+        <xs:annotation>
+          <xs:documentation>
+            Describes how namespaces should be selected.
+          </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="Recursive" type="xs:boolean" use="optional" default="false">
+          <xs:annotation>
+            <xs:documentation>An optional filter to include children of this namespace.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
   </xs:complexType>
 </xs:schema>
