@@ -190,6 +190,28 @@ namespace Potter.ApiExtraction.Core.Tests
             ReadExpectation(apiTypeReader, expectation);
         }
 
+        [TestMethod]
+        public void Read_StructWithPublicMembers()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.StructWithPublicMembers;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
+        [TestMethod]
+        public void Read_InterfaceWithPublicMembers()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.InterfaceWithPublicMembers;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
         #endregion
 
         #region ReadAssembly

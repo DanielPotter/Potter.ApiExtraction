@@ -9,5 +9,10 @@ namespace Potter.ApiExtraction.Core.Tests.Constants
         public List<string> Constraints { get; set; } = new List<string>();
 
         public List<MemberExpectation> Members { get; set; } = new List<MemberExpectation>();
+
+        public override string ToString()
+        {
+            return $"{Declaration} Constraints:({Constraints.Count}) Members:({Members.Count})";
+        }
     }
 }

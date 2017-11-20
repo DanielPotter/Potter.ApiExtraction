@@ -712,6 +712,99 @@ namespace Potter.ApiExtraction.Core.Tests
                 },
             },
         };
+
+        public static Expectation StructWithPublicMembers { get; } = new Expectation
+        {
+            Type = typeof(Types.StructWithPublicMembers),
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Usings =
+                {
+                    "usingSystem;"
+                },
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.StructWithPublicMembers).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.StructWithPublicMembers)}",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Property)
+                                    {
+                                        Declaration = $"void{nameof(Types.StructWithPublicMembers.Run)}()",
+                                    },
+                                    new MemberExpectation(MemberType.Property)
+                                    {
+                                        Declaration = $"object{nameof(Types.StructWithPublicMembers.Value)}{{get;set;}}",
+                                    },
+                                    new MemberExpectation(MemberType.Property)
+                                    {
+                                        Declaration = $"eventEventHandler{nameof(Types.StructWithPublicMembers.Changed)};",
+                                    },
+                                },
+                            },
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.StructWithPublicMembers)}Factory",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.StructWithPublicMembers)}Create{nameof(Types.StructWithPublicMembers)}()",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        public static Expectation InterfaceWithPublicMembers { get; } = new Expectation
+        {
+            Type = typeof(Types.IInterfaceWithPublicMembers),
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Usings =
+                {
+                    "usingSystem;"
+                },
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.IInterfaceWithPublicMembers).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation
+                            {
+                                Declaration = $"publicinterface{nameof(Types.IInterfaceWithPublicMembers)}",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Property)
+                                    {
+                                        Declaration = $"void{nameof(Types.IInterfaceWithPublicMembers.Run)}()",
+                                    },
+                                    new MemberExpectation(MemberType.Property)
+                                    {
+                                        Declaration = $"object{nameof(Types.IInterfaceWithPublicMembers.Value)}{{get;set;}}",
+                                    },
+                                    new MemberExpectation(MemberType.Property)
+                                    {
+                                        Declaration = $"eventEventHandler{nameof(Types.IInterfaceWithPublicMembers.Changed)};",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
     }
 }
 
@@ -976,6 +1069,26 @@ namespace Potter.ApiExtraction.Types
         public new virtual void Run()
         {
         }
+    }
+
+    public struct StructWithPublicMembers
+    {
+        public object Value { get; set; }
+
+        public event EventHandler Changed;
+
+        public void Run()
+        {
+        }
+    }
+
+    public interface IInterfaceWithPublicMembers
+    {
+        object Value { get; set; }
+
+        event EventHandler Changed;
+
+        void Run();
     }
 }
 

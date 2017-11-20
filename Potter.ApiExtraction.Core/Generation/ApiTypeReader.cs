@@ -161,7 +161,7 @@ namespace Potter.ApiExtraction.Core.Generation
         private InterfaceDeclarationSyntax createInterface(Type type, IEnumerable<MemberDeclarationSyntax> members, TypeNameResolver typeNameResolver, InterfaceRole role)
         {
             var instanceDeclaration = InterfaceDeclaration(typeNameResolver.GetApiTypeIdentifier(type, role))
-                .WithBaseList(getBaseList(type, typeNameResolver))
+                .WithBaseList(role == InterfaceRole.Instance ? getBaseList(type, typeNameResolver) : null)
                 .WithMembers(List(members))
                 .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
 
@@ -179,6 +179,14 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private IEnumerable<(MemberDeclarationSyntax member, InterfaceRole role)> getMembers(Type type, TypeNameResolver typeNameResolver)
         {
+            // Structs do not contain default constructors.  Therefore, we must add one ourselves.
+            if (type.IsValueType)
+            {
+                MethodDeclarationSyntax constructoMethodDeclaration = getDefaultConstructorMethod(type, typeNameResolver);
+
+                yield return (constructoMethodDeclaration, InterfaceRole.Factory);
+            }
+
             foreach (MemberInfo memberInfo in type.GetMembers(AllPublicMembers))
             {
                 bool isCompilerGenerated;
@@ -301,6 +309,17 @@ namespace Potter.ApiExtraction.Core.Generation
                         break;
                 }
             }
+        }
+
+        private MethodDeclarationSyntax getDefaultConstructorMethod(Type type, TypeNameResolver typeNameResolver)
+        {
+            TypeSyntax returnTypeSyntax = typeNameResolver.GetApiTypeIdentifierName(type, InterfaceRole.Instance);
+            TypeSyntax rawTypeSyntax = typeNameResolver.ResolveTypeName(type, includeTypeArguments: false, ignoreNamespace: true);
+
+            MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + rawTypeSyntax.ToString()))
+                .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
+
+            return methodDeclaration;
         }
 
         private MethodDeclarationSyntax getConstructorMethod(ConstructorInfo constructorInfo, TypeNameResolver typeNameResolver)
@@ -511,9 +530,16 @@ namespace Potter.ApiExtraction.Core.Generation
             return BaseList(SeparatedList(baseTypes));
         }
 
+        private readonly HashSet<Type> _ignoredBaseTypes = new HashSet<Type>
+        {
+            typeof(object),
+            typeof(ValueType),
+        };
+
         private IEnumerable<BaseTypeSyntax> getBaseTypes(Type type, TypeNameResolver typeNameResolver)
         {
-            if (type.BaseType != null && type.BaseType != typeof(object))
+
+            if (type.BaseType != null && _ignoredBaseTypes.Contains(type.BaseType) == false)
             {
                 yield return SimpleBaseType(typeNameResolver.GetApiTypeIdentifierName(type.BaseType, InterfaceRole.Instance));
             }

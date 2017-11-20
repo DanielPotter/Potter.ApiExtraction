@@ -45,7 +45,10 @@ namespace Potter.ApiExtraction.Core.Generation
         {
             var nameBuilder = new StringBuilder();
 
-            nameBuilder.Append('I');
+            if (type.IsInterface == false)
+            {
+                nameBuilder.Append('I');
+            }
 
             if (type.IsGenericType)
             {
