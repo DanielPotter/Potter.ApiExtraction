@@ -27,10 +27,6 @@ if (Test-Path -Path $OutDirectory)
 # Create dependency list file.
 New-Item -Path $DependenciesFilePath -ItemType File -Force | Out-Null
 
-Add-Type -TypeDefinition (Get-Content -Path $AssemblyLoaderFile -Raw) -OutputAssembly $AssemblyLoaderAssemblyFile
-
-Out-File -FilePath $DependenciesFilePath -Encoding ascii -Append -InputObject "Potter.AssemblyLoader"
-
 # Copy dependency artifacts.
 $projectReferences | Where-Object { $_ } | ForEach-Object {
 

@@ -37,6 +37,7 @@ function Export-Interfaces
 
         # Read the configuration.
         [ApiConfiguration] $apiConfiguration = $null
+
         if ($Configuration)
         {
             # Reference: https://stackoverflow.com/q/25991963/2503153 (11/18/2017)
@@ -54,11 +55,6 @@ function Export-Interfaces
                 $reader.Close()
             }
         }
-
-        if (-not $apiConfiguration)
-        {
-            $apiConfiguration = [ApiConfiguration]::new()
-        }
     }
 
     process
@@ -72,10 +68,26 @@ function Export-Interfaces
 
             $assemblyPath = Resolve-Path -Path $_
 
-            [System.Reflection.Assembly] $assembly = [Potter.Reflection.AssemblyLoader]::Load($assemblyPath)
+            $assemblyLoader = [Potter.Reflection.AssemblyLoader]::new()
 
-            $assembly.GetTypes()
-            #$typeReader.ReadAssembly($assembly, $apiConfiguration, $typeNameResolver)
+            $assembly = $null
+
+            try
+            {
+                $assembly = $assemblyLoader.Load($assemblyPath)
+
+                if ($assembly)
+                {
+                    # Force resolution for all types.
+                    [void] $assembly.GetTypes()
+
+                    $typeReader.ReadAssembly([System.Reflection.Assembly] $assembly, [TypeNameResolver] $typeNameResolver, [ApiConfiguration] $apiConfiguration)
+                }
+            }
+            finally
+            {
+                $assemblyLoader.Dispose()
+            }
         }
     }
 }

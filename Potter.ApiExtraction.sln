@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Potter.ApiExtraction.Core.T
 EndProject
 Project("{F5034706-568F-408A-B7B3-4D38C6DB8A32}") = "Potter.ApiExtraction.PowerShell", "Potter.ApiExtraction.PowerShell\Potter.ApiExtraction.PowerShell.pssproj", "{6CAFC0C6-A428-4D30-A9F9-700E829FEA51}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Potter.Reflection", "Potter.Reflection\Potter.Reflection.csproj", "{D59C408E-1CB7-40C8-88EF-CA938F974E45}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Potter.Reflection.Tests", "Potter.Reflection.Tests\Potter.Reflection.Tests.csproj", "{12B07355-2D61-4EB0-82DE-A0E3DCE207BB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +31,14 @@ Global
 		{6CAFC0C6-A428-4D30-A9F9-700E829FEA51}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6CAFC0C6-A428-4D30-A9F9-700E829FEA51}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6CAFC0C6-A428-4D30-A9F9-700E829FEA51}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D59C408E-1CB7-40C8-88EF-CA938F974E45}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D59C408E-1CB7-40C8-88EF-CA938F974E45}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D59C408E-1CB7-40C8-88EF-CA938F974E45}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D59C408E-1CB7-40C8-88EF-CA938F974E45}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12B07355-2D61-4EB0-82DE-A0E3DCE207BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12B07355-2D61-4EB0-82DE-A0E3DCE207BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12B07355-2D61-4EB0-82DE-A0E3DCE207BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12B07355-2D61-4EB0-82DE-A0E3DCE207BB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

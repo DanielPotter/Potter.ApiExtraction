@@ -116,23 +116,10 @@ namespace Potter.ApiExtraction.Core.Configuration {
     [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://schemas.danielrpotter.com/api/configuration/2017")]
     public partial class NamespaceSelector : MemberSelector {
         
-        private string name1Field;
-        
         private bool recursiveField;
         
         public NamespaceSelector() {
             this.recursiveField = false;
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAttributeAttribute("Name")]
-        public string Name1 {
-            get {
-                return this.name1Field;
-            }
-            set {
-                this.name1Field = value;
-            }
         }
         
         /// <remarks/>
@@ -172,7 +159,7 @@ namespace Potter.ApiExtraction.Core.Configuration {
         private bool includeObsoleteField;
         
         public ApiConfigurationTypes() {
-            this.modeField = TypeMode.Whitelist;
+            this.modeField = TypeMode.Blacklist;
             this.includeObsoleteField = false;
         }
         
@@ -190,7 +177,7 @@ namespace Potter.ApiExtraction.Core.Configuration {
         
         /// <remarks/>
         [System.Xml.Serialization.XmlAttributeAttribute()]
-        [System.ComponentModel.DefaultValueAttribute(TypeMode.Whitelist)]
+        [System.ComponentModel.DefaultValueAttribute(TypeMode.Blacklist)]
         public TypeMode Mode {
             get {
                 return this.modeField;

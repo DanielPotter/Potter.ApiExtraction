@@ -16,14 +16,14 @@ namespace Potter.ApiExtraction.Core.Generation
 
         #region Assembly Reading
 
-        public IEnumerable<CompilationUnitSyntax> ReadAssembly(Assembly assembly, ApiConfiguration configuration, TypeNameResolver typeNameResolver = null)
+        public IEnumerable<CompilationUnitSyntax> ReadAssembly(Assembly assembly, TypeNameResolver typeNameResolver = null, ApiConfiguration configuration = null)
         {
             if (typeNameResolver == null)
             {
                 typeNameResolver = new TypeNameResolver();
             }
 
-            foreach (Type type in findConfiguredTypes(assembly.ExportedTypes, configuration.Types))
+            foreach (Type type in findConfiguredTypes(assembly.ExportedTypes, configuration?.Types ?? new ApiConfigurationTypes()))
             {
                 yield return ReadCompilationUnit(type, typeNameResolver);
             }
@@ -46,6 +46,11 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private bool isMatch(Type type, IEnumerable<MemberSelector> selectors)
         {
+            if (selectors == null)
+            {
+                return false;
+            }
+
             foreach (var selector in selectors)
             {
                 switch (selector)
@@ -170,11 +175,23 @@ namespace Potter.ApiExtraction.Core.Generation
             return instanceDeclaration;
         }
 
+        private static readonly Type _compilerGeneratedType = typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute);
+
         private IEnumerable<(MemberDeclarationSyntax member, InterfaceRole role)> getMembers(Type type, TypeNameResolver typeNameResolver)
         {
             foreach (MemberInfo memberInfo in type.GetMembers(AllPublicMembers))
             {
-                if (memberInfo.GetCustomAttribute(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute)) != null)
+                bool isCompilerGenerated;
+                if (type.Assembly.ReflectionOnly)
+                {
+                    isCompilerGenerated = memberInfo.GetCustomAttributesData().Any(attribute => _compilerGeneratedType.IsEquivalentTo(attribute.AttributeType));
+                }
+                else
+                {
+                    isCompilerGenerated = memberInfo.GetCustomAttribute(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute)) != null;
+                }
+
+                if (isCompilerGenerated)
                 {
                     continue;
                 }
