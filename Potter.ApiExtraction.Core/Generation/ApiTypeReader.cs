@@ -17,20 +17,16 @@ namespace Potter.ApiExtraction.Core.Generation
 
         #region Assembly Reading
 
-        public IEnumerable<CompilationUnitSyntax> ReadAssembly(Assembly assembly, TypeNameResolver typeNameResolver = null, ApiConfiguration configuration = null)
+        public IEnumerable<CompilationUnitSyntax> ReadAssembly(Assembly assembly, ApiConfiguration configuration = null)
         {
-            if (typeNameResolver == null)
+            TypeConfiguration typesConfiguration = configuration?.Types ?? new TypeConfiguration();
+            foreach (Type type in findConfiguredTypes(assembly.ExportedTypes, typesConfiguration))
             {
-                typeNameResolver = new TypeNameResolver();
-            }
-
-            foreach (Type type in findConfiguredTypes(assembly.ExportedTypes, configuration?.Types ?? new ApiConfigurationTypes()))
-            {
-                yield return ReadCompilationUnit(type, typeNameResolver);
+                yield return ReadCompilationUnit(type, typesConfiguration);
             }
         }
 
-        private IEnumerable<Type> findConfiguredTypes(IEnumerable<Type> types, ApiConfigurationTypes typesConfiguration)
+        private IEnumerable<Type> findConfiguredTypes(IEnumerable<Type> types, TypeConfiguration typesConfiguration)
         {
             bool addMatches = typesConfiguration.Mode == TypeMode.Whitelist;
 
@@ -84,12 +80,9 @@ namespace Potter.ApiExtraction.Core.Generation
 
         #region Type Reading
 
-        public CompilationUnitSyntax ReadCompilationUnit(Type type, TypeNameResolver typeNameResolver = null)
+        public CompilationUnitSyntax ReadCompilationUnit(Type type, TypeConfiguration typeConfiguration)
         {
-            if (typeNameResolver == null)
-            {
-                typeNameResolver = new TypeNameResolver();
-            }
+            var typeNameResolver = new TypeNameResolver(typeConfiguration);
 
             NamespaceDeclarationSyntax namespaceDeclaration = ReadNamespace(type, typeNameResolver);
             IEnumerable<string> usings = typeNameResolver.GetRegisteredNamespaces();
@@ -103,11 +96,11 @@ namespace Potter.ApiExtraction.Core.Generation
             return compilationUnit;
         }
 
-        public NamespaceDeclarationSyntax ReadNamespace(Type type, TypeNameResolver typeNameResolver = null)
+        public NamespaceDeclarationSyntax ReadNamespace(Type type, TypeNameResolver typeNameResolver)
         {
             if (typeNameResolver == null)
             {
-                typeNameResolver = new TypeNameResolver();
+                throw new ArgumentNullException(nameof(typeNameResolver));
             }
 
             SyntaxList<MemberDeclarationSyntax> typeDeclarations;

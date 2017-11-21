@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Potter.ApiExtraction.Core.Configuration;
 
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -12,7 +13,17 @@ namespace Potter.ApiExtraction.Core.Generation
 {
     public class TypeNameResolver
     {
-        public bool SimplifyNamespaces { get; set; }
+        public TypeNameResolver(TypeConfiguration typeConfiguration)
+        {
+            if (typeConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(typeConfiguration));
+            }
+
+            TypeConfiguration = typeConfiguration;
+        }
+
+        public TypeConfiguration TypeConfiguration { get; }
 
         public IReadOnlyList<string> GetRegisteredNamespaces() => _namespaces.ToList();
 
@@ -106,7 +117,7 @@ namespace Potter.ApiExtraction.Core.Generation
                 typeNameSyntax = IdentifierName(typeName);
             }
 
-            if (SimplifyNamespaces)
+            if (TypeConfiguration.SimplifyNamespaces)
             {
                 if (ignoreNamespace == false)
                 {

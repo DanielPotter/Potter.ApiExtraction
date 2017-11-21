@@ -26,7 +26,7 @@ namespace Potter.ApiExtraction.Core.Configuration {
         
         private AssemblyElement assemblyField;
         
-        private ApiConfigurationTypes typesField;
+        private TypeConfiguration typesField;
         
         /// <remarks/>
         public AssemblyElement Assembly {
@@ -39,7 +39,7 @@ namespace Potter.ApiExtraction.Core.Configuration {
         }
         
         /// <remarks/>
-        public ApiConfigurationTypes Types {
+        public TypeConfiguration Types {
             get {
                 return this.typesField;
             }
@@ -149,8 +149,8 @@ namespace Potter.ApiExtraction.Core.Configuration {
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://schemas.danielrpotter.com/api/configuration/2017")]
-    public partial class ApiConfigurationTypes {
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://schemas.danielrpotter.com/api/configuration/2017")]
+    public partial class TypeConfiguration {
         
         private MemberSelector[] itemsField;
         
@@ -158,9 +158,12 @@ namespace Potter.ApiExtraction.Core.Configuration {
         
         private bool includeObsoleteField;
         
-        public ApiConfigurationTypes() {
+        private bool simplifyNamespacesField;
+        
+        public TypeConfiguration() {
             this.modeField = TypeMode.Blacklist;
             this.includeObsoleteField = false;
+            this.simplifyNamespacesField = true;
         }
         
         /// <remarks/>
@@ -196,6 +199,18 @@ namespace Potter.ApiExtraction.Core.Configuration {
             }
             set {
                 this.includeObsoleteField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(true)]
+        public bool SimplifyNamespaces {
+            get {
+                return this.simplifyNamespacesField;
+            }
+            set {
+                this.simplifyNamespacesField = value;
             }
         }
     }
