@@ -45,7 +45,7 @@ namespace Potter.ApiExtraction.Core.Generation
         {
             var nameBuilder = new StringBuilder();
 
-            if (type.IsInterface == false)
+            if (type.IsInterface == false && type.IsEnum == false)
             {
                 nameBuilder.Append('I');
             }

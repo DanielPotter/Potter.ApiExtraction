@@ -6,5 +6,6 @@ namespace Potter.ApiExtraction.Core.Tests.Constants
         Indexer,
         Event,
         Method,
+        EnumMember,
     }
 }

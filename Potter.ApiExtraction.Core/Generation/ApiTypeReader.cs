@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Potter.ApiExtraction.Core.Configuration;
@@ -109,8 +110,18 @@ namespace Potter.ApiExtraction.Core.Generation
                 typeNameResolver = new TypeNameResolver();
             }
 
+            SyntaxList<MemberDeclarationSyntax> typeDeclarations;
+            if (type.IsEnum)
+            {
+                typeDeclarations = SingletonList<MemberDeclarationSyntax>(createEnum(type, typeNameResolver));
+            }
+            else
+            {
+                typeDeclarations = List<MemberDeclarationSyntax>(readInterface(type, typeNameResolver));
+            }
+
             return NamespaceDeclaration(IdentifierName(type.Namespace))
-                .WithMembers(List<MemberDeclarationSyntax>(readInterface(type, typeNameResolver)));
+                .WithMembers(typeDeclarations);
         }
 
         private IEnumerable<InterfaceDeclarationSyntax> readInterface(Type type, TypeNameResolver typeNameResolver)
@@ -177,6 +188,31 @@ namespace Potter.ApiExtraction.Core.Generation
             return instanceDeclaration;
         }
 
+        private EnumDeclarationSyntax createEnum(Type type, TypeNameResolver typeNameResolver)
+        {
+            return EnumDeclaration(typeNameResolver.GetApiTypeIdentifier(type, InterfaceRole.Instance))
+                .WithMembers(SeparatedList(getEnumMembers(type, typeNameResolver)))
+                .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
+        }
+
+        private IEnumerable<EnumMemberDeclarationSyntax> getEnumMembers(Type type, TypeNameResolver typeNameResolver)
+        {
+            foreach (var fieldInfo in type.GetFields())
+            {
+                if (fieldInfo.IsSpecialName || isCompilerGenerated(fieldInfo))
+                {
+                    continue;
+                }
+
+                yield return getEnumMember(fieldInfo, typeNameResolver);
+            }
+        }
+
+        private EnumMemberDeclarationSyntax getEnumMember(FieldInfo fieldInfo, TypeNameResolver typeNameResolver)
+        {
+            return EnumMemberDeclaration(fieldInfo.Name);
+        }
+
         private static readonly Type _compilerGeneratedType = typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute);
 
         private IEnumerable<(MemberDeclarationSyntax member, InterfaceRole role)> getMembers(Type type, TypeNameResolver typeNameResolver)
@@ -191,17 +227,7 @@ namespace Potter.ApiExtraction.Core.Generation
 
             foreach (MemberInfo memberInfo in type.GetMembers(AllPublicMembers))
             {
-                bool isCompilerGenerated;
-                if (type.Assembly.ReflectionOnly)
-                {
-                    isCompilerGenerated = memberInfo.GetCustomAttributesData().Any(attribute => _compilerGeneratedType.IsEquivalentTo(attribute.AttributeType));
-                }
-                else
-                {
-                    isCompilerGenerated = memberInfo.GetCustomAttribute(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute)) != null;
-                }
-
-                if (isCompilerGenerated)
+                if (isCompilerGenerated(memberInfo))
                 {
                     continue;
                 }
@@ -311,6 +337,21 @@ namespace Potter.ApiExtraction.Core.Generation
                         break;
                 }
             }
+        }
+
+        private static bool isCompilerGenerated(MemberInfo memberInfo)
+        {
+            bool isCompilerGenerated;
+            if (memberInfo.DeclaringType.Assembly.ReflectionOnly)
+            {
+                isCompilerGenerated = memberInfo.GetCustomAttributesData().Any(attribute => _compilerGeneratedType.IsEquivalentTo(attribute.AttributeType));
+            }
+            else
+            {
+                isCompilerGenerated = memberInfo.GetCustomAttribute(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute)) != null;
+            }
+
+            return isCompilerGenerated;
         }
 
         private MethodDeclarationSyntax getDefaultConstructorMethod(Type type, TypeNameResolver typeNameResolver)

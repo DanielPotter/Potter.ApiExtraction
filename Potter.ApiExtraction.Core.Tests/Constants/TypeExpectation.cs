@@ -4,6 +4,19 @@ namespace Potter.ApiExtraction.Core.Tests.Constants
 {
     public class TypeExpectation
     {
+        [System.Obsolete]
+        public TypeExpectation()
+            : this(TypeKind.Interface)
+        {
+        }
+
+        public TypeExpectation(TypeKind kind)
+        {
+            Kind = kind;
+        }
+
+        public TypeKind Kind { get; set; }
+
         public string Declaration { get; set; }
 
         public List<string> Constraints { get; set; } = new List<string>();

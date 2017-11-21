@@ -212,6 +212,17 @@ namespace Potter.ApiExtraction.Core.Tests
             ReadExpectation(apiTypeReader, expectation);
         }
 
+        [TestMethod]
+        public void Read_SimpleEnum()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.SimpleEnum;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
         #endregion
 
         #region ReadAssembly
@@ -288,12 +299,26 @@ namespace Potter.ApiExtraction.Core.Tests
 
             AssertSequence(expected.Types, actual.Members, (expectedMember, actualMember) =>
             {
-                if (actualMember is InterfaceDeclarationSyntax actualInterface)
+                switch (expectedMember.Kind)
                 {
-                    AssertInterfaceDeclaration(expectedMember, actualInterface);
-                }
+                    case Constants.TypeKind.Interface:
+                        if (actualMember is InterfaceDeclarationSyntax actualInterface)
+                        {
+                            AssertInterfaceDeclaration(expectedMember, actualInterface);
+                        }
 
-                Assert.IsInstanceOfType(actualMember, typeof(InterfaceDeclarationSyntax));
+                        Assert.IsInstanceOfType(actualMember, typeof(InterfaceDeclarationSyntax));
+                        break;
+
+                    case Constants.TypeKind.Enum:
+                        if (actualMember is EnumDeclarationSyntax actualEnum)
+                        {
+                            AssertEnumDeclaration(expectedMember, actualEnum);
+                        }
+
+                        Assert.IsInstanceOfType(actualMember, typeof(EnumDeclarationSyntax));
+                        break;
+                }
             });
         }
 
@@ -312,6 +337,21 @@ namespace Potter.ApiExtraction.Core.Tests
             int bodyLength = actual.CloseBraceToken.FullSpan.End - actual.OpenBraceToken.FullSpan.Start;
 
             return actual.ToString().Substring(0, totalLength - constraintLength - bodyLength);
+        }
+
+        private static void AssertEnumDeclaration(TypeExpectation expected, EnumDeclarationSyntax actual)
+        {
+            Assert.AreEqual(expected.Declaration, getDeclaration(actual));
+
+            AssertSequence(expected.Members, actual.Members, AssertMemberDeclaration);
+        }
+
+        private static string getDeclaration(EnumDeclarationSyntax actual)
+        {
+            int declarationEnd = actual.OpenBraceToken.SpanStart;
+            int declarationLength = declarationEnd - actual.Span.Start;
+
+            return actual.ToString().Substring(0, declarationLength);
         }
 
         public static void AssertMemberDeclaration(MemberExpectation expected, MemberDeclarationSyntax actual)

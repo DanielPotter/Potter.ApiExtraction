@@ -805,6 +805,43 @@ namespace Potter.ApiExtraction.Core.Tests
                 },
             },
         };
+
+        public static Expectation SimpleEnum { get; } = new Expectation
+        {
+            Type = typeof(Types.SimpleEnum),
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.SimpleEnum).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation(TypeKind.Enum)
+                            {
+                                Declaration = $"publicenum{nameof(Types.SimpleEnum)}",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.EnumMember)
+                                    {
+                                        Declaration = $"{nameof(Types.SimpleEnum.One)}",
+                                    },
+                                    new MemberExpectation(MemberType.EnumMember)
+                                    {
+                                        Declaration = $"{nameof(Types.SimpleEnum.Two)}",
+                                    },
+                                    new MemberExpectation(MemberType.EnumMember)
+                                    {
+                                        Declaration = $"{nameof(Types.SimpleEnum.Three)}",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
     }
 }
 
@@ -1089,6 +1126,13 @@ namespace Potter.ApiExtraction.Types
         event EventHandler Changed;
 
         void Run();
+    }
+
+    public enum SimpleEnum
+    {
+        One,
+        Two,
+        Three,
     }
 }
 
