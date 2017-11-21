@@ -11,26 +11,64 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Potter.ApiExtraction.Core.Generation
 {
+    /// <summary>
+    ///     Resolves the name to use for API interfaces and their members.
+    /// </summary>
     public class TypeNameResolver
     {
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="TypeNameResolver"/> with the type
+        ///     configuration.
+        /// </summary>
+        /// <param name="typeConfiguration">
+        ///     The type configuration specifying how names should resolve.
+        /// </param>
         public TypeNameResolver(TypeConfiguration typeConfiguration)
         {
-            if (typeConfiguration == null)
-            {
-                throw new ArgumentNullException(nameof(typeConfiguration));
-            }
-
-            TypeConfiguration = typeConfiguration;
+            TypeConfiguration = typeConfiguration ?? throw new ArgumentNullException(nameof(typeConfiguration));
         }
 
+        /// <summary>
+        ///     Gets the type configuration specifying how names should resolve.
+        /// </summary>
         public TypeConfiguration TypeConfiguration { get; }
 
+        #region Namespaces
+
+        /// <summary>
+        ///     Gets the registered namespaces.
+        /// </summary>
+        /// <returns>
+        ///     A new list of the registered namespaces. This instance will not change.
+        /// </returns>
         public IReadOnlyList<string> GetRegisteredNamespaces() => _namespaces.ToList();
 
+        /// <summary>
+        ///     Clears the registered namespaces.
+        /// </summary>
         public void ClearRegisteredNamespaces() => _namespaces.Clear();
 
         private readonly HashSet<string> _namespaces = new HashSet<string>();
 
+        #endregion
+
+        /// <summary>
+        ///     Gets the identifier name for an API type as specified by the configuration.
+        /// </summary>
+        /// <param name="type">
+        ///     The type for which to get a name.
+        /// </param>
+        /// <param name="role">
+        ///     The intended role for the identifier.
+        /// </param>
+        /// <param name="includeTypeArguments">
+        ///     <c>true</c> if generic type arguments should be included in the name; otherwise,
+        ///     <c>false</c>.
+        /// </param>
+        /// <returns>
+        ///     A <see cref="NameSyntax"/> representing the API type name for
+        ///     <paramref name="type"/>.
+        /// </returns>
         public NameSyntax GetApiTypeIdentifierName(Type type, InterfaceRole role, bool includeTypeArguments = true)
         {
             SyntaxToken baseTypeIdentifier = GetApiTypeIdentifier(type, role);
@@ -52,6 +90,19 @@ namespace Potter.ApiExtraction.Core.Generation
             }
         }
 
+        /// <summary>
+        ///     Gets the identifier for an API type as specified by the configuration.
+        /// </summary>
+        /// <param name="type">
+        ///     The type for which to get a name.
+        /// </param>
+        /// <param name="role">
+        ///     The intended role for the identifier.
+        /// </param>
+        /// <returns>
+        ///     A <see cref="SyntaxToken"/> representing the API type name for
+        ///     <paramref name="type"/>.
+        /// </returns>
         public SyntaxToken GetApiTypeIdentifier(Type type, InterfaceRole role)
         {
             var nameBuilder = new StringBuilder();
@@ -84,7 +135,23 @@ namespace Potter.ApiExtraction.Core.Generation
             return Identifier(nameBuilder.ToString());
         }
 
-        public TypeSyntax ResolveTypeName(Type type, bool includeTypeArguments = true, bool ignoreNamespace = false)
+        /// <summary>
+        ///     Resolves the type name for a type reference.
+        /// </summary>
+        /// <param name="type">
+        ///     The type for which to resolve a type name.
+        /// </param>
+        /// <param name="includeTypeArguments">
+        ///     <c>true</c> if generic type arguments should be included in the name; otherwise,
+        ///     <c>false</c>.
+        /// </param>
+        /// <param name="registerNamespace">
+        ///     <c>true</c> if the <paramref name="type"/> namespace should be registered;
+        ///     otherwise, <c>false</c>.
+        /// </param>
+        /// <returns>
+        /// </returns>
+        public TypeSyntax ResolveTypeName(Type type, bool includeTypeArguments = true, bool registerNamespace = true)
         {
             if (type.IsGenericParameter)
             {
@@ -119,7 +186,7 @@ namespace Potter.ApiExtraction.Core.Generation
 
             if (TypeConfiguration.SimplifyNamespaces)
             {
-                if (ignoreNamespace == false)
+                if (registerNamespace)
                 {
                     _namespaces.Add(type.Namespace);
                 }

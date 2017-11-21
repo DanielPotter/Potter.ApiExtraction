@@ -11,18 +11,39 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Potter.ApiExtraction.Core.Generation
 {
+    /// <summary>
+    ///     Generates interfaces for each type exported from an assembly as specified by a
+    ///     configuration file.
+    /// </summary>
     public class ApiTypeReader
     {
         private const BindingFlags AllPublicMembers = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Static;
 
         #region Assembly Reading
 
-        public IEnumerable<CompilationUnitSyntax> ReadAssembly(Assembly assembly, ApiConfiguration configuration = null)
+        /// <summary>
+        ///     Generates interfaces for each type exported from the specified assembly.
+        /// </summary>
+        /// <param name="assembly">
+        ///     The assembly from which to generate interfaces.
+        /// </param>
+        /// <param name="configuration">
+        ///     Specifies which and how types should be read.
+        /// </param>
+        /// <returns>
+        ///     A sequence of <see cref="CompilationUnitSyntax"/> objects representing interface source
+        ///     code.
+        /// </returns>
+        public IEnumerable<CompilationUnitSyntax> ReadAssembly(Assembly assembly, TypeConfiguration configuration = null)
         {
-            TypeConfiguration typesConfiguration = configuration?.Types ?? new TypeConfiguration();
-            foreach (Type type in findConfiguredTypes(assembly.ExportedTypes, typesConfiguration))
+            if (configuration == null)
             {
-                yield return ReadCompilationUnit(type, typesConfiguration);
+                configuration = new TypeConfiguration();
+            }
+
+            foreach (Type type in findConfiguredTypes(assembly.ExportedTypes, configuration))
+            {
+                yield return ReadCompilationUnit(type, configuration);
             }
         }
 
@@ -80,11 +101,24 @@ namespace Potter.ApiExtraction.Core.Generation
 
         #region Type Reading
 
-        public CompilationUnitSyntax ReadCompilationUnit(Type type, TypeConfiguration typeConfiguration)
+        /// <summary>
+        ///     Generates an interface for a type.
+        /// </summary>
+        /// <param name="type">
+        ///     The type for which to generate.
+        /// </param>
+        /// <param name="configuration">
+        ///     Specifies how the type should be read.
+        /// </param>
+        /// <returns>
+        ///     A <see cref="CompilationUnitSyntax"/> object representing the source code for a
+        ///     namespace with an interface.
+        /// </returns>
+        public CompilationUnitSyntax ReadCompilationUnit(Type type, TypeConfiguration configuration = null)
         {
-            var typeNameResolver = new TypeNameResolver(typeConfiguration);
+            var typeNameResolver = new TypeNameResolver(configuration ?? new TypeConfiguration());
 
-            NamespaceDeclarationSyntax namespaceDeclaration = ReadNamespace(type, typeNameResolver);
+            NamespaceDeclarationSyntax namespaceDeclaration = readNamespace(type, typeNameResolver);
             IEnumerable<string> usings = typeNameResolver.GetRegisteredNamespaces();
 
             var compilationUnit = CompilationUnit()
@@ -96,7 +130,7 @@ namespace Potter.ApiExtraction.Core.Generation
             return compilationUnit;
         }
 
-        public NamespaceDeclarationSyntax ReadNamespace(Type type, TypeNameResolver typeNameResolver)
+        private NamespaceDeclarationSyntax readNamespace(Type type, TypeNameResolver typeNameResolver)
         {
             if (typeNameResolver == null)
             {
@@ -350,7 +384,7 @@ namespace Potter.ApiExtraction.Core.Generation
         private MethodDeclarationSyntax getDefaultConstructorMethod(Type type, TypeNameResolver typeNameResolver)
         {
             TypeSyntax returnTypeSyntax = typeNameResolver.GetApiTypeIdentifierName(type, InterfaceRole.Instance);
-            TypeSyntax rawTypeSyntax = typeNameResolver.ResolveTypeName(type, includeTypeArguments: false, ignoreNamespace: true);
+            TypeSyntax rawTypeSyntax = typeNameResolver.ResolveTypeName(type, includeTypeArguments: false, registerNamespace: false);
 
             MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + rawTypeSyntax.ToString()))
                 .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
@@ -361,7 +395,7 @@ namespace Potter.ApiExtraction.Core.Generation
         private MethodDeclarationSyntax getConstructorMethod(ConstructorInfo constructorInfo, TypeNameResolver typeNameResolver)
         {
             TypeSyntax returnTypeSyntax = typeNameResolver.GetApiTypeIdentifierName(constructorInfo.DeclaringType, InterfaceRole.Instance);
-            TypeSyntax rawTypeSyntax = typeNameResolver.ResolveTypeName(constructorInfo.DeclaringType, includeTypeArguments: false, ignoreNamespace: true);
+            TypeSyntax rawTypeSyntax = typeNameResolver.ResolveTypeName(constructorInfo.DeclaringType, includeTypeArguments: false, registerNamespace: false);
 
             MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + rawTypeSyntax.ToString()))
                 .WithParameterList(ParameterList(SeparatedList(getParameters(typeNameResolver, constructorInfo.GetParameters()))))
@@ -590,12 +624,18 @@ namespace Potter.ApiExtraction.Core.Generation
 
         #region Helpers
 
-        // NOTE: This method is necessary because PowerShell has great difficulty calling generic
-        //       methods (like NormalizeWhitespace).
-
-        public static Microsoft.CodeAnalysis.SyntaxNode NormalizeWhitespace(Microsoft.CodeAnalysis.SyntaxNode syntaxNode)
+        /// <summary>
+        ///     Creates a new syntax node with all whitespace and end of line trivia replaced with
+        ///     regularly formatted trivia.
+        /// </summary>
+        /// <param name="node">
+        ///     The node to format.
+        /// </param>
+        public static SyntaxNode NormalizeWhitespace(SyntaxNode node)
         {
-            return Microsoft.CodeAnalysis.SyntaxNodeExtensions.NormalizeWhitespace(syntaxNode);
+            // NOTE: This method is necessary because PowerShell has great difficulty calling
+            //       generic methods (like NormalizeWhitespace).
+            return SyntaxNodeExtensions.NormalizeWhitespace(node);
         }
 
         #endregion

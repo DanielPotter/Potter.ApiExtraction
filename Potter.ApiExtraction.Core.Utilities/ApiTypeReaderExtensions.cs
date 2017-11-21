@@ -56,7 +56,7 @@ namespace Potter.ApiExtraction.Core.Utilities
                 }
             }
 
-            return apiTypeReader.ReadAssembly(assembly, configuration);
+            return apiTypeReader.ReadAssembly(assembly, configuration.Types);
         }
 
         public static IEnumerable<string> ReadNormalizedString(this ApiTypeReader apiTypeReader, string configurationFile)

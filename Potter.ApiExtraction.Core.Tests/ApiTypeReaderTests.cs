@@ -254,7 +254,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static void ReadAssemblyExpectation(ApiTypeReader typeReader, ExpectationForAssembly expectation)
         {
             // Act
-            IEnumerable<CompilationUnitSyntax> compilationUnits = typeReader.ReadAssembly(expectation.Assembly, expectation.Configuration);
+            IEnumerable<CompilationUnitSyntax> compilationUnits = typeReader.ReadAssembly(expectation.Assembly, expectation.Configuration.Types);
 
             // Assert
             AssertSequence(expectation.CompilationUnits, compilationUnits, (expected, actual) =>
