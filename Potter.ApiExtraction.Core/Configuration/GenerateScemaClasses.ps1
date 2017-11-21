@@ -1,6 +1,6 @@
 $XsdFilterPath = 'C:\Program Files (x86)\Microsoft SDKs\Windows\*\bin\NETFX*Tools\xsd.exe'
-$TargetFile = 'Potter.ApiExtraction.Core\Configuration\ApiConfiguration.xsd'
-$OutputDirectoryPath = 'Potter.ApiExtraction.Core\Configuration'
+$TargetFile = "$PSScriptRoot\ApiConfiguration.xsd"
+$OutputDirectoryPath = $PSScriptRoot
 $OuputNamespace = 'Potter.ApiExtraction.Core.Configuration'
 
 # Validate parameters.
