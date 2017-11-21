@@ -158,11 +158,23 @@ namespace Potter.ApiExtraction.Core.Generation
                 return IdentifierName(type.Name);
             }
 
+            // Check if it is a predefined type.
             var predefinedSyntaxKind = tryGetPredefinedSyntaxKind(type);
-
             if (predefinedSyntaxKind.HasValue)
             {
                 return PredefinedType(Token(predefinedSyntaxKind.Value));
+            }
+
+            // Check if it is a nullable type.
+            if (type.IsGenericType && typeof(Nullable<>).IsEquivalentTo(type.GetGenericTypeDefinition()))
+            {
+                // TODO: What should we return when includeTypeArguments is false? (Daniel Potter,
+                //       11/21/2017)
+                return NullableType(
+                    elementType: ResolveTypeName(type.GetGenericArguments()[0],
+                        includeTypeArguments: false,
+                        registerNamespace: registerNamespace)
+                );
             }
 
             string typeName = getBaseTypeName(type);
