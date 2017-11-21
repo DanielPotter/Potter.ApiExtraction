@@ -26,11 +26,11 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.EmptyClass).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.EmptyClass)}",
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.EmptyClass)}Factory",
                                 Members =
@@ -60,7 +60,7 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.SimpleProperties).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.SimpleProperties)}",
                                 Members =
@@ -79,7 +79,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                     },
                                 },
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.SimpleProperties)}Factory",
                                 Members =
@@ -113,7 +113,7 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.SimpleEvents).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.SimpleEvents)}",
                                 Members =
@@ -128,7 +128,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                     },
                                 },
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.SimpleEvents)}Factory",
                                 Members =
@@ -158,7 +158,7 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.IndexerProperties).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.IndexerProperties)}",
                                 Members =
@@ -181,7 +181,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                     },
                                 },
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.IndexerProperties)}Factory",
                                 Members =
@@ -211,7 +211,7 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.SimpleMethods).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.SimpleMethods)}",
                                 Members =
@@ -242,7 +242,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                     },
                                 },
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.SimpleMethods)}Factory",
                                 Members =
@@ -272,7 +272,7 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.GenericMethods).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericMethods)}",
                                 Members =
@@ -303,7 +303,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                     },
                                 },
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericMethods)}Factory",
                                 Members =
@@ -333,7 +333,7 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.GenericMethodsWithConstraints).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericMethodsWithConstraints)}",
                                 Members =
@@ -365,7 +365,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                     },
                                 },
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericMethodsWithConstraints)}Factory",
                                 Members =
@@ -395,11 +395,11 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.GenericClass<>).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClass<int>)}<T1>",
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClass<int>)}Factory<T1>",
                                 Members =
@@ -429,11 +429,11 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.GenericClass<,>).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClass<int, int>)}<T1,T2>",
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClass<int, int>)}Factory<T1,T2>",
                                 Members =
@@ -463,7 +463,7 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.GenericClassWithClassConstraint<>).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithClassConstraint<object>)}<T1>",
                                 Constraints =
@@ -471,7 +471,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                     "whereT1:class",
                                 },
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithClassConstraint<object>)}Factory<T1>",
                                 Constraints =
@@ -505,7 +505,7 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.GenericClassWithValueConstraint<>).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithValueConstraint<int>)}<T1>",
                                 Constraints =
@@ -513,7 +513,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                     "whereT1:struct",
                                 },
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithValueConstraint<int>)}Factory<T1>",
                                 Constraints =
@@ -547,7 +547,7 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.GenericClassWithMultipleConstraints<,>).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithMultipleConstraints<object, int>)}<T1,T2>",
                                 Constraints =
@@ -556,7 +556,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                     "whereT2:struct",
                                 },
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithMultipleConstraints<object, int>)}Factory<T1,T2>",
                                 Constraints =
@@ -591,11 +591,11 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.ClassWithConstructors).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.ClassWithConstructors)}",
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.ClassWithConstructors)}Factory",
                                 Members =
@@ -633,11 +633,11 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.GenericClassWithConstructors<,>).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithConstructors<int, int>)}<T1,T2>",
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.GenericClassWithConstructors<int, int>)}Factory<T1,T2>",
                                 Members =
@@ -675,11 +675,11 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.ClassWithStaticMembers).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.ClassWithStaticMembers)}",
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.ClassWithStaticMembers)}Factory",
                                 Members =
@@ -690,7 +690,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                     },
                                 },
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.ClassWithStaticMembers)}Manager",
                                 Members =
@@ -724,7 +724,7 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.EmptyStaticClass).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.EmptyStaticClass)}Manager",
                             },
@@ -751,7 +751,7 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.StructWithPublicMembers).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.StructWithPublicMembers)}",
                                 Members =
@@ -770,7 +770,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                     },
                                 },
                             },
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterfaceI{nameof(Types.StructWithPublicMembers)}Factory",
                                 Members =
@@ -804,7 +804,7 @@ namespace Potter.ApiExtraction.Core.Tests
                         Namespace = typeof(Types.IInterfaceWithPublicMembers).Namespace,
                         Types =
                         {
-                            new TypeExpectation
+                            new TypeExpectation(TypeKind.Interface)
                             {
                                 Declaration = $"publicinterface{nameof(Types.IInterfaceWithPublicMembers)}",
                                 Members =
@@ -1070,7 +1070,7 @@ namespace Potter.ApiExtraction.Types
     {
         public object Value { get; set; }
 
-        public event EventHandler Changed;
+        public event EventHandler Changed { add { } remove { } }
 
         public void Run()
         {
@@ -1081,7 +1081,7 @@ namespace Potter.ApiExtraction.Types
     {
         public virtual object Value { get; set; }
 
-        public virtual event EventHandler Changed;
+        public virtual event EventHandler Changed { add { } remove { } }
 
         public virtual void Run()
         {
@@ -1092,7 +1092,7 @@ namespace Potter.ApiExtraction.Types
     {
         public new object Value { get; set; }
 
-        public new event EventHandler Changed;
+        public new event EventHandler Changed { add { } remove { } }
 
         public new void Run()
         {
@@ -1103,7 +1103,7 @@ namespace Potter.ApiExtraction.Types
     {
         public new object Value { get; set; }
 
-        public new event EventHandler Changed;
+        public new event EventHandler Changed { add { } remove { } }
 
         public new void Run()
         {
@@ -1114,7 +1114,7 @@ namespace Potter.ApiExtraction.Types
     {
         public override object Value { get; set; }
 
-        public override event EventHandler Changed;
+        public override event EventHandler Changed { add { } remove { } }
 
         public override void Run()
         {
@@ -1125,7 +1125,7 @@ namespace Potter.ApiExtraction.Types
     {
         public new virtual object Value { get; set; }
 
-        public new virtual event EventHandler Changed;
+        public new virtual event EventHandler Changed { add { } remove { } }
 
         public new virtual void Run()
         {
@@ -1136,7 +1136,7 @@ namespace Potter.ApiExtraction.Types
     {
         public object Value { get; set; }
 
-        public event EventHandler Changed;
+        public event EventHandler Changed { add { } remove { } }
 
         public void Run()
         {
@@ -1201,7 +1201,7 @@ namespace Potter.ApiExtraction.Core.Tests
                             Namespace = typeof(Types.Subset.SimpleClass).Namespace,
                             Types =
                             {
-                                new TypeExpectation
+                                new TypeExpectation(TypeKind.Interface)
                                 {
                                     Declaration = $"publicinterfaceI{nameof(Types.Subset.SimpleClass)}",
                                     Members =
@@ -1224,7 +1224,7 @@ namespace Potter.ApiExtraction.Core.Tests
                                         },
                                     },
                                 },
-                                new TypeExpectation
+                                new TypeExpectation(TypeKind.Interface)
                                 {
                                     Declaration = $"publicinterfaceI{nameof(Types.Subset.SimpleClass)}Factory",
                                     Members =
@@ -1256,7 +1256,7 @@ namespace Potter.ApiExtraction.Types.Subset
             set { }
         }
 
-        public event EventHandler Changed;
+        public event EventHandler Changed { add { } remove { } }
 
         public void Reset()
         {

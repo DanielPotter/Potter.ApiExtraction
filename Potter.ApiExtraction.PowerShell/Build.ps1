@@ -9,8 +9,6 @@ Push-Location -Path $PSScriptRoot
 
 [string] $OutDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(".\bld")
 [string] $DependenciesFilePath = "$OutDirectory\dependencies.txt"
-[string] $AssemblyLoaderFile = "$PSScriptRoot\AssemblyLoader.cs"
-[string] $AssemblyLoaderAssemblyFile = "$OutDirectory\Potter.AssemblyLoader.dll"
 
 # Locate project dependencies.
 $projectContent = Get-Content -Path .\Potter.ApiExtraction.PowerShell.pssproj -ErrorAction Stop

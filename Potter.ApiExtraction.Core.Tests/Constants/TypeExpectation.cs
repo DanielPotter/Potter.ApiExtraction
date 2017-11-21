@@ -4,12 +4,6 @@ namespace Potter.ApiExtraction.Core.Tests.Constants
 {
     public class TypeExpectation
     {
-        [System.Obsolete]
-        public TypeExpectation()
-            : this(TypeKind.Interface)
-        {
-        }
-
         public TypeExpectation(TypeKind kind)
         {
             Kind = kind;
