@@ -619,6 +619,11 @@ namespace Potter.ApiExtraction.Core.Generation
 
             foreach (var implementedInterface in type.GetInterfaces())
             {
+                if (implementedInterface.IsNested == false && implementedInterface.IsPublic == false)
+                {
+                    continue;
+                }
+
                 yield return SimpleBaseType(typeNameResolver.GetApiTypeIdentifierName(implementedInterface, InterfaceRole.Instance));
             }
         }
