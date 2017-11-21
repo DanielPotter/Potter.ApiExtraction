@@ -91,3 +91,39 @@ function Export-Interfaces
         }
     }
 }
+
+function Write-CompilationUnit
+{
+    [CmdletBinding()]
+    param (
+        # Specifies one or more compilation units to write.
+        [Parameter(
+            Position = 0,
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = "Compilation units to write."
+        )]
+        [object[]]
+        $CompilationUnit,
+
+        # Specifies a path to an API configuration XML file.
+        [Parameter(
+            Position = 1,
+            HelpMessage = "Path to an API configuration XML file."
+        )]
+        [string]
+        $Destination
+    )
+
+    process
+    {
+        $CompilationUnit | ForEach-Object {
+
+            $fileBaseName = $_.Members[0].Members[0].Identifier
+
+            $normalizedUnit = [ApiTypeReader]::NormalizeWhitespace($_)
+
+            Set-Content -Value $normalizedUnit.ToString() -Path (Join-Path -Path $Destination -ChildPath "$fileBaseName.cs")
+        }
+    }
+}

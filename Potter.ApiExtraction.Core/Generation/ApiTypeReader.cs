@@ -81,6 +81,8 @@ namespace Potter.ApiExtraction.Core.Generation
 
         #endregion
 
+        #region Type Reading
+
         public CompilationUnitSyntax ReadCompilationUnit(Type type, TypeNameResolver typeNameResolver = null)
         {
             if (typeNameResolver == null)
@@ -549,6 +551,20 @@ namespace Potter.ApiExtraction.Core.Generation
                 yield return SimpleBaseType(typeNameResolver.GetApiTypeIdentifierName(implementedInterface, InterfaceRole.Instance));
             }
         }
+
+        #endregion
+
+        #region Helpers
+
+        // NOTE: This method is necessary because PowerShell has great difficulty calling generic
+        //       methods (like NormalizeWhitespace).
+
+        public static Microsoft.CodeAnalysis.SyntaxNode NormalizeWhitespace(Microsoft.CodeAnalysis.SyntaxNode syntaxNode)
+        {
+            return Microsoft.CodeAnalysis.SyntaxNodeExtensions.NormalizeWhitespace(syntaxNode);
+        }
+
+        #endregion
     }
 
     internal static class ReflectionExtensions
