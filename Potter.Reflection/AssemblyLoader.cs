@@ -25,7 +25,14 @@ namespace Potter.Reflection
             WindowsRuntimeMetadata.ReflectionOnlyNamespaceResolve -= resolveNamespace;
         }
 
-        public Assembly Load(string assemblyFile)
+        public Assembly Load(string assemblyName)
+        {
+            Assembly assembly = Assembly.ReflectionOnlyLoad(assemblyName);
+
+            return assembly;
+        }
+
+        public Assembly LoadFile(string assemblyFile)
         {
             Assembly assembly = Assembly.ReflectionOnlyLoadFrom(assemblyFile);
 

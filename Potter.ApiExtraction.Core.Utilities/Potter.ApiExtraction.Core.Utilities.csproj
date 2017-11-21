@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net461</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Potter.ApiExtraction.Core\Potter.ApiExtraction.Core.csproj" />
+    <ProjectReference Include="..\Potter.Reflection\Potter.Reflection.csproj" />
+  </ItemGroup>
+
+</Project>

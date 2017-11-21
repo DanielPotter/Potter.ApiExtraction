@@ -92,38 +92,126 @@ function Export-Interfaces
     }
 }
 
-function Write-CompilationUnit
+function Read-AssemblyApi
 {
     [CmdletBinding()]
     param (
-        # Specifies one or more compilation units to write.
+        # Specifies a path to one or more configuration files.
         [Parameter(
             Position = 0,
             ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true,
-            HelpMessage = "Compilation units to write."
+            HelpMessage = "Path to one or more configuration files."
         )]
-        [object[]]
-        $CompilationUnit,
+        [Alias("PSPath")]
+        [ValidateNotNullOrEmpty()]
+        [string[]]
+        $Path,
 
-        # Specifies a path to an API configuration XML file.
+        # Specifies to return a compilation unit with normalized whitespace.
         [Parameter(
-            Position = 1,
-            HelpMessage = "Path to an API configuration XML file."
+            HelpMessage = "Return a compilation unit with normalized whitespace."
         )]
-        [string]
-        $Destination
+        [switch]
+        $CompilationUnit
     )
 
     process
     {
-        $CompilationUnit | ForEach-Object {
+        $Path | ForEach-Object {
 
-            $fileBaseName = $_.Members[0].Members[0].Identifier
+            [string] $configurationPath = $_
 
-            $normalizedUnit = [ApiTypeReader]::NormalizeWhitespace($_)
+            $apiTypeReader = [ApiTypeReader]::new()
 
-            Set-Content -Value $normalizedUnit.ToString() -Path (Join-Path -Path $Destination -ChildPath "$fileBaseName.cs")
+            $unit = [Potter.ApiExtraction.Core.Utilities.ApiTypeReaderExtensions]::Read($apiTypeReader, $configurationPath)
+
+            if ($CompilationUnit.IsPresent)
+            {
+                return [ApiTypeReader]::NormalizeWhitespace($unit)
+            }
+            else
+            {
+                $namepaceDeclatation = $unit.Members[0]
+                [string] $namespaceName = $namepaceDeclatation.Name.ToString()
+                [string] $firstMemberName = $namepaceDeclatation.Members[0].Identifier
+
+                return [PSCustomObject] @{
+
+                    Namespace = $namespaceName
+                    Name      = $firstMemberName
+                    Unit      = $unit
+                }
+            }
+        }
+    }
+}
+
+function Write-CompilationUnit
+{
+    [CmdletBinding()]
+    param (
+        # Specifies a path to an API configuration XML file.
+        [Parameter(
+            Mandatory = $true,
+            Position = 0,
+            HelpMessage = "Path to an API configuration XML file."
+        )]
+        [string]
+        $Destination,
+
+        # Specifies one or more compilation units to write.
+        [Parameter(
+            Position = 1,
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = "Compilation units to write."
+        )]
+        [ValidateNotNullOrEmpty()]
+        [Alias("Unit")]
+        [object]
+        $CompilationUnit,
+
+        # Specifies the names for each compilation unit.
+        [Parameter(
+            Position = 2,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = "The names for each compilation unit."
+        )]
+        [string]
+        $Name,
+
+        # Specifies the namespaces for each compilation unit.
+        [Parameter(
+            Position = 3,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = "The namespaces for each compilation unit."
+        )]
+        [string]
+        $Namespace
+    )
+
+    process
+    {
+        if ($CompilationUnit)
+        {
+            $namepaceDeclatation = $CompilationUnit.Members[0]
+            [string] $namespaceName = $namepaceDeclatation.Name.ToString()
+            [string] $firstMemberName = $namepaceDeclatation.Members[0].Identifier
+
+            if (-not $Name)
+            {
+                $Name = $firstMemberName
+            }
+
+            if (-not $Namespace)
+            {
+                $Namespace = $namespaceName
+            }
+
+            $normalizedUnit = [ApiTypeReader]::NormalizeWhitespace($CompilationUnit)
+
+            Set-Content -Value $normalizedUnit.ToString() -Path (Join-Path -Path $Destination -ChildPath "$Name.cs")
         }
     }
 }

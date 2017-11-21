@@ -27,6 +27,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Potter.ApiExtraction.Core.Utilities\Potter.ApiExtraction.Core.Utilities.csproj">
+      <Name>Potter.ApiExtraction.Core.Utilities</Name>
+      <Project>{e5118e61-9ab8-44fe-b93a-7478b322e4f8}</Project>
+      <Private>True</Private>
+    </ProjectReference>
     <ProjectReference Include="..\Potter.ApiExtraction.Core\Potter.ApiExtraction.Core.csproj">
       <Name>Potter.ApiExtraction.Core</Name>
       <Project>{d340faac-6b07-4077-9134-867acecd5b96}</Project>

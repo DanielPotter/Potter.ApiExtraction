@@ -94,7 +94,7 @@ namespace Potter.Reflection.Tests
             try
             {
                 // Act
-                Assembly actualAssembly = assemblyLoader.Load(assemblyLocation);
+                Assembly actualAssembly = assemblyLoader.LoadFile(assemblyLocation);
 
                 // Assert
                 Assert.IsNotNull(actualAssembly);
