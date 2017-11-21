@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -27,7 +28,22 @@ namespace Potter.Reflection
 
         public Assembly Load(string assemblyName)
         {
-            Assembly assembly = Assembly.ReflectionOnlyLoad(assemblyName);
+            var name = new AssemblyName(assemblyName);
+
+            Assembly assembly;
+            switch (name.ContentType)
+            {
+                default:
+                    assembly = Assembly.ReflectionOnlyLoad(assemblyName);
+                    break;
+
+                case AssemblyContentType.WindowsRuntime:
+                    assembly = resolveAssemblyFromNamespace(assemblyName);
+                    break;
+            }
+
+            // Force dependency resolution.
+            assembly.GetTypes();
 
             return assembly;
         }
@@ -46,16 +62,94 @@ namespace Potter.Reflection
 
         private void resolveNamespace(object sender, NamespaceResolveEventArgs args)
         {
-            string path = WindowsRuntimeMetadata.ResolveNamespace(args.NamespaceName, Enumerable.Empty<string>()).FirstOrDefault();
+            Assembly assembly = resolveAssemblyFromNamespace(args.NamespaceName);
+
+            if (assembly != null)
+            {
+                args.ResolvedAssemblies.Add(assembly);
+            }
+        }
+
+        private static Assembly resolveAssemblyFromNamespace(string namespaceName)
+        {
+            string path = WindowsRuntimeMetadata.ResolveNamespace(namespaceName, Enumerable.Empty<string>()).FirstOrDefault();
+
+            var expectedAssemblyName = new AssemblyName(namespaceName);
+            if (path == null)
+            {
+                path = resolveAssemblyLocation(expectedAssemblyName);
+            }
+            else
+            {
+                var resolvedAssemblyName = AssemblyName.GetAssemblyName(path);
+
+                // Unfortunately, this happens a lot.
+                if (expectedAssemblyName.Name != resolvedAssemblyName.Name)
+                {
+                    string newPath = resolveAssemblyLocation(expectedAssemblyName);
+
+                    if (newPath != null)
+                    {
+                        path = newPath;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"WARNING: Could not resolve assembly: {namespaceName}. Defaulting to {path}");
+                    }
+                }
+            }
 
             if (path == null)
             {
-                return;
+                return null;
             }
 
-            Assembly assembly = Assembly.ReflectionOnlyLoadFrom(path);
+            return Assembly.ReflectionOnlyLoadFrom(path);
+        }
 
-            args.ResolvedAssemblies.Add(assembly);
+        // TODO: Remove this hard-coded path. (Daniel Potter, 11/21/2017)
+        private static readonly string WindowsApiContractsFolder =
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Windows Kits\10\References");
+
+        private static string resolveAssemblyLocation(AssemblyName assemblyName)
+        {
+            Console.WriteLine($"Resolving assembly: {assemblyName.FullName}");
+
+            var contractsFolder = new DirectoryInfo(WindowsApiContractsFolder);
+
+            foreach (var versionFolder in contractsFolder.EnumerateDirectories("10.*"))
+            {
+                string path = searchContracts(versionFolder);
+
+                if (path != null)
+                {
+                    return path;
+                }
+            }
+
+            return searchContracts(contractsFolder);
+
+            string searchContracts(DirectoryInfo directoryInfo)
+            {
+                Console.WriteLine($"Searching: {directoryInfo.FullName} For: {assemblyName.Name}");
+                foreach (var contractFolder in directoryInfo.EnumerateDirectories(assemblyName.Name))
+                {
+                    Console.WriteLine($"Searching: {contractFolder.FullName} For: {assemblyName.Version.ToString()}");
+                    foreach (var apiVersionFolder in contractFolder.EnumerateDirectories(assemblyName.Version.ToString()))
+                    {
+                        Console.WriteLine($"Searching: {apiVersionFolder.FullName} For: {assemblyName.Name}");
+                        string path = WindowsRuntimeMetadata.ResolveNamespace(assemblyName.Name, apiVersionFolder.FullName, Enumerable.Empty<string>()).FirstOrDefault();
+
+                        if (path != null)
+                        {
+                            Console.WriteLine($"Located: {path}");
+                            return path;
+                        }
+                    }
+                }
+
+                return null;
+            }
         }
     }
 

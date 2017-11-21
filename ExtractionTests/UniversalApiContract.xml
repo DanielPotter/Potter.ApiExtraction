@@ -1,0 +1,7 @@
+<Api 
+    xmlns="http://schemas.danielrpotter.com/api/configuration/2017">
+    <Assembly Name="Windows.Foundation.UniversalApiContract, Version=5.0.0.0, Culture=neutral, PublicKeyToken=null, ContentType=WindowsRuntime" />
+    <Types Mode="Whitelist" SimplifyNamespaces="true">
+        <Namespace Name="Windows.Devices.Geolocation" />
+    </Types>
+</Api>

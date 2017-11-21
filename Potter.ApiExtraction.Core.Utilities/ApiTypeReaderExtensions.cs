@@ -13,6 +13,45 @@ namespace Potter.ApiExtraction.Core.Utilities
     {
         #region Configuration Reading
 
+        public static IEnumerable<ApiExtractionResult> ReadResults(this ApiTypeReader apiTypeReader, string configurationFile)
+        {
+            if (apiTypeReader == null)
+            {
+                throw new ArgumentNullException(nameof(apiTypeReader));
+            }
+
+            if (configurationFile == null)
+            {
+                throw new ArgumentNullException(nameof(configurationFile));
+            }
+
+            foreach (var unit in Read(apiTypeReader, configurationFile))
+            {
+                var namespaceDeclaration = (NamespaceDeclarationSyntax) unit.Members.First();
+                var memberDeclaration = namespaceDeclaration.Members.First();
+
+                string namespaceName = namespaceDeclaration.Name.ToString();
+
+                string name;
+                switch (memberDeclaration)
+                {
+                    case InterfaceDeclarationSyntax interfaceDeclaration:
+                        name = interfaceDeclaration.Identifier.Text;
+                        break;
+
+                    case EnumDeclarationSyntax enumDeclaration:
+                        name = enumDeclaration.Identifier.Text;
+                        break;
+
+                    default:
+                        name = null;
+                        break;
+                }
+
+                yield return new ApiExtractionResult(namespaceName, name, unit.NormalizeWhitespace().ToFullString());
+            }
+        }
+
         public static IEnumerable<CompilationUnitSyntax> Read(this ApiTypeReader apiTypeReader, string configurationFile)
         {
             if (string.IsNullOrEmpty(configurationFile))

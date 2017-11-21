@@ -1,0 +1,1 @@
+& powershell.exe -File "$PSScriptRoot\ExtractUniversalApi.ps1"

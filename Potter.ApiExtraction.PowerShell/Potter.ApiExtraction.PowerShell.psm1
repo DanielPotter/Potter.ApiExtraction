@@ -106,14 +106,7 @@ function Read-AssemblyApi
         [Alias("PSPath")]
         [ValidateNotNullOrEmpty()]
         [string[]]
-        $Path,
-
-        # Specifies to return a compilation unit with normalized whitespace.
-        [Parameter(
-            HelpMessage = "Return a compilation unit with normalized whitespace."
-        )]
-        [switch]
-        $CompilationUnit
+        $Path
     )
 
     process
@@ -124,24 +117,21 @@ function Read-AssemblyApi
 
             $apiTypeReader = [ApiTypeReader]::new()
 
-            $unit = [Potter.ApiExtraction.Core.Utilities.ApiTypeReaderExtensions]::Read($apiTypeReader, $configurationPath)
+            $results = [Potter.ApiExtraction.Core.Utilities.ApiTypeReaderExtensions]::ReadResults($apiTypeReader, $configurationPath)
 
-            if ($CompilationUnit.IsPresent)
+            $assemblyLoader = [Potter.Reflection.AssemblyLoader]::new()
+
+            try
             {
-                return [ApiTypeReader]::NormalizeWhitespace($unit)
-            }
-            else
-            {
-                $namepaceDeclatation = $unit.Members[0]
-                [string] $namespaceName = $namepaceDeclatation.Name.ToString()
-                [string] $firstMemberName = $namepaceDeclatation.Members[0].Identifier
+                $results | ForEach-Object {
 
-                return [PSCustomObject] @{
-
-                    Namespace = $namespaceName
-                    Name      = $firstMemberName
-                    Unit      = $unit
+                    Write-Verbose "$($_.Namespace).$($_.Name)"
+                    return [Potter.ApiExtraction.Core.Utilities.ApiExtractionResult] $_
                 }
+            }
+            finally
+            {
+                $assemblyLoader.Dispose()
             }
         }
     }
@@ -162,6 +152,7 @@ function Write-CompilationUnit
 
         # Specifies one or more compilation units to write.
         [Parameter(
+            Mandatory = $true,
             Position = 1,
             ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true,
@@ -169,11 +160,12 @@ function Write-CompilationUnit
         )]
         [ValidateNotNullOrEmpty()]
         [Alias("Unit")]
-        [object]
+        [string]
         $CompilationUnit,
 
         # Specifies the names for each compilation unit.
         [Parameter(
+            Mandatory = $true,
             Position = 2,
             ValueFromPipelineByPropertyName = $true,
             HelpMessage = "The names for each compilation unit."
@@ -195,23 +187,12 @@ function Write-CompilationUnit
     {
         if ($CompilationUnit)
         {
-            $namepaceDeclatation = $CompilationUnit.Members[0]
-            [string] $namespaceName = $namepaceDeclatation.Name.ToString()
-            [string] $firstMemberName = $namepaceDeclatation.Members[0].Identifier
-
-            if (-not $Name)
+            if (-not (Test-Path -Path $Destination))
             {
-                $Name = $firstMemberName
+                New-Item -Path $Destination -ItemType Directory | Out-Null
             }
 
-            if (-not $Namespace)
-            {
-                $Namespace = $namespaceName
-            }
-
-            $normalizedUnit = [ApiTypeReader]::NormalizeWhitespace($CompilationUnit)
-
-            Set-Content -Value $normalizedUnit.ToString() -Path (Join-Path -Path $Destination -ChildPath "$Name.cs")
+            Set-Content -Value $CompilationUnit -Path (Join-Path -Path $Destination -ChildPath "$Name.cs")
         }
     }
 }

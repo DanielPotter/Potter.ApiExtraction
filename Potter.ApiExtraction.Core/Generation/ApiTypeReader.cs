@@ -41,6 +41,8 @@ namespace Potter.ApiExtraction.Core.Generation
                 configuration = new TypeConfiguration();
             }
 
+            Console.WriteLine($"Reading assembly: {assembly.FullName} ({assembly.Location})");
+
             foreach (Type type in findConfiguredTypes(assembly.ExportedTypes, configuration))
             {
                 yield return ReadCompilationUnit(type, configuration);
@@ -55,6 +57,7 @@ namespace Potter.ApiExtraction.Core.Generation
             {
                 bool matches = isMatch(type, typesConfiguration.Items);
 
+                System.Diagnostics.Debug.WriteLine($"Type: {type.FullName}, IsMatch: {matches}, AddingMatches: {addMatches}");
                 if (matches == addMatches)
                 {
                     yield return type;
