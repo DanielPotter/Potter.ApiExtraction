@@ -8,7 +8,7 @@ namespace Potter.ApiExtraction.Core.Tests.Constants
     {
         public Type Type { get; set; }
 
-        public TypeConfiguration TypeConfiguration { get; set; }
+        public ApiConfiguration Configuration { get; set; }
 
         public CompilationUnitExpectation CompilationUnit { get; set; }
 

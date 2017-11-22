@@ -266,8 +266,11 @@ namespace Potter.ApiExtraction.Core.Tests
 
         public static void ReadExpectation(ApiTypeReader typeReader, Expectation expectation)
         {
+            // Arrange
+            var typeNameResolver = new TypeNameResolver(expectation.Configuration);
+
             // Act
-            var compilationUnit = typeReader.ReadCompilationUnit(expectation.Type, expectation.TypeConfiguration);
+            var compilationUnit = typeReader.ReadCompilationUnit(expectation.Type, typeNameResolver);
 
             // Assert
             AssertCompilationUnit(expectation.CompilationUnit, compilationUnit);
@@ -276,7 +279,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static void ReadAssemblyExpectation(ApiTypeReader typeReader, ExpectationForAssembly expectation)
         {
             // Act
-            IEnumerable<CompilationUnitSyntax> compilationUnits = typeReader.ReadAssembly(expectation.Assembly, expectation.Configuration.Types);
+            IEnumerable<CompilationUnitSyntax> compilationUnits = typeReader.ReadAssembly(expectation.Assembly, expectation.Configuration);
 
             // Assert
             AssertSequence(expectation.CompilationUnits, compilationUnits, (expected, actual) =>

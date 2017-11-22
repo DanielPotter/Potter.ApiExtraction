@@ -8,15 +8,23 @@ namespace Potter.ApiExtraction.Core.Tests
 {
     public static partial class ExpectedTypes
     {
-        private static readonly TypeConfiguration _defaultTypeConfiguration = new TypeConfiguration
+        private static readonly ApiConfiguration _defaultTypeConfiguration = new ApiConfiguration
         {
-            SimplifyNamespaces = true,
+            Assembly = new AssemblyElement
+            {
+                Name = typeof(ExpectedTypes).Assembly.FullName,
+                Location = typeof(ExpectedTypes).Assembly.Location,
+            },
+            Types = new TypeConfiguration
+            {
+                SimplifyNamespaces = true,
+            },
         };
 
         public static Expectation EmptyClass { get; } = new Expectation
         {
             Type = typeof(Types.EmptyClass),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -50,7 +58,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation SimpleFields { get; } = new Expectation
         {
             Type = typeof(Types.SimpleFields),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -95,7 +103,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation SimpleProperties { get; } = new Expectation
         {
             Type = typeof(Types.SimpleProperties),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -144,7 +152,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation SimpleEvents { get; } = new Expectation
         {
             Type = typeof(Types.SimpleEvents),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Usings =
@@ -193,7 +201,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation IndexerProperties { get; } = new Expectation
         {
             Type = typeof(Types.IndexerProperties),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -246,7 +254,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation SimpleMethods { get; } = new Expectation
         {
             Type = typeof(Types.SimpleMethods),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -307,7 +315,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation ReferenceMethods { get; } = new Expectation
         {
             Type = typeof(Types.ReferenceMethods),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -352,7 +360,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericMethods { get; } = new Expectation
         {
             Type = typeof(Types.GenericMethods),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -413,7 +421,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericMethodsWithConstraints { get; } = new Expectation
         {
             Type = typeof(Types.GenericMethodsWithConstraints),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -475,7 +483,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericClassOf1 { get; } = new Expectation
         {
             Type = typeof(Types.GenericClass<>),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -509,7 +517,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericClassOf2 { get; } = new Expectation
         {
             Type = typeof(Types.GenericClass<,>),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -543,7 +551,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericClassWithClassConstraint { get; } = new Expectation
         {
             Type = typeof(Types.GenericClassWithClassConstraint<>),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -585,7 +593,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericClassWithValueConstraint { get; } = new Expectation
         {
             Type = typeof(Types.GenericClassWithValueConstraint<>),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -627,7 +635,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericClassWithMultipleConstraints { get; } = new Expectation
         {
             Type = typeof(Types.GenericClassWithMultipleConstraints<,>),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -671,7 +679,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation ClassWithConstructors { get; } = new Expectation
         {
             Type = typeof(Types.ClassWithConstructors),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -713,7 +721,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericClassWithConstructors { get; } = new Expectation
         {
             Type = typeof(Types.GenericClassWithConstructors<,>),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -755,7 +763,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation ClassWithStaticMembers { get; } = new Expectation
         {
             Type = typeof(Types.ClassWithStaticMembers),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -804,7 +812,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation EmptyStaticClass { get; } = new Expectation
         {
             Type = typeof(Types.EmptyStaticClass),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -827,7 +835,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation StructWithPublicMembers { get; } = new Expectation
         {
             Type = typeof(Types.StructWithPublicMembers),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Usings =
@@ -880,7 +888,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation InterfaceWithPublicMembers { get; } = new Expectation
         {
             Type = typeof(Types.IInterfaceWithPublicMembers),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Usings =
@@ -922,7 +930,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation SimpleEnum { get; } = new Expectation
         {
             Type = typeof(Types.SimpleEnum),
-            TypeConfiguration = _defaultTypeConfiguration,
+            Configuration = _defaultTypeConfiguration,
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -1282,6 +1290,11 @@ namespace Potter.ApiExtraction.Core.Tests
             Assembly = typeof(Types.Subset.SimpleClass).Assembly,
             Configuration = new ApiConfiguration
             {
+                Assembly = new AssemblyElement
+                {
+                    Name = typeof(Types.Subset.SimpleClass).Assembly.FullName,
+                    Location = typeof(Types.Subset.SimpleClass).Assembly.Location,
+                },
                 Types = new TypeConfiguration
                 {
                     SimplifyNamespaces = true,

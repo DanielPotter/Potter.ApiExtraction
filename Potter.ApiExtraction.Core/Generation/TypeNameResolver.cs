@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -17,21 +18,20 @@ namespace Potter.ApiExtraction.Core.Generation
     public class TypeNameResolver
     {
         /// <summary>
-        ///     Initializes a new instance of the <see cref="TypeNameResolver"/> with the type
-        ///     configuration.
+        ///     Initializes a new instance of the <see cref="TypeNameResolver"/> with configuration.
         /// </summary>
-        /// <param name="typeConfiguration">
+        /// <param name="configuration">
         ///     The type configuration specifying how names should resolve.
         /// </param>
-        public TypeNameResolver(TypeConfiguration typeConfiguration)
+        public TypeNameResolver(ApiConfiguration configuration)
         {
-            TypeConfiguration = typeConfiguration ?? throw new ArgumentNullException(nameof(typeConfiguration));
+            Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         /// <summary>
         ///     Gets the type configuration specifying how names should resolve.
         /// </summary>
-        public TypeConfiguration TypeConfiguration { get; }
+        public ApiConfiguration Configuration { get; }
 
         #region Namespaces
 
@@ -71,9 +71,9 @@ namespace Potter.ApiExtraction.Core.Generation
         ///     A <see cref="NameSyntax"/> representing the API type name for
         ///     <paramref name="type"/>.
         /// </returns>
-        public NameSyntax GetApiTypeIdentifierName(Type type, InterfaceRole role, bool includeTypeArguments = true)
+        public NameSyntax GetApiTypeIdentifierName(Type type, TypeRole role, bool includeTypeArguments = true)
         {
-            SyntaxToken baseTypeIdentifier = GetApiTypeIdentifier(type, role);
+            SyntaxToken baseTypeIdentifier = resolveTypeWithCaching(type, role).BaseIdentifier;
 
             if (includeTypeArguments && type.IsGenericType)
             {
@@ -81,7 +81,8 @@ namespace Potter.ApiExtraction.Core.Generation
                     identifier: baseTypeIdentifier,
                     typeArgumentList: TypeArgumentList(
                         SeparatedList(
-                            type.GetGenericArguments().Select(typeArgument => ResolveTypeName(typeArgument, includeTypeArguments))
+                            type.GetGenericArguments()
+                                .Select(typeArgument => resolveTypeWithCaching(typeArgument, TypeRole.Instance).TypeSyntax)
                         )
                     )
                 );
@@ -105,36 +106,9 @@ namespace Potter.ApiExtraction.Core.Generation
         ///     A <see cref="SyntaxToken"/> representing the API type name for
         ///     <paramref name="type"/>.
         /// </returns>
-        public SyntaxToken GetApiTypeIdentifier(Type type, InterfaceRole role)
+        public SyntaxToken GetApiTypeIdentifier(Type type, TypeRole role)
         {
-            var nameBuilder = new StringBuilder();
-
-            if (type.IsInterface == false && type.IsEnum == false)
-            {
-                nameBuilder.Append('I');
-            }
-
-            if (type.IsGenericType)
-            {
-                nameBuilder.Append(type.Name.Substring(0, type.Name.IndexOf('`')));
-            }
-            else
-            {
-                nameBuilder.Append(type.Name);
-            }
-
-            switch (role)
-            {
-                case InterfaceRole.Factory:
-                    nameBuilder.Append("Factory");
-                    break;
-
-                case InterfaceRole.Manager:
-                    nameBuilder.Append("Manager");
-                    break;
-            }
-
-            return Identifier(nameBuilder.ToString());
+            return resolveTypeWithCaching(type, role).BaseIdentifier;
         }
 
         #endregion
@@ -153,19 +127,12 @@ namespace Potter.ApiExtraction.Core.Generation
         /// <param name="type">
         ///     The type for which to resolve a type name.
         /// </param>
-        /// <param name="includeTypeArguments">
-        ///     <c>true</c> if generic type arguments should be included in the name; otherwise,
-        ///     <c>false</c>.
-        /// </param>
-        /// <param name="registerNamespace">
-        ///     <c>true</c> if the <paramref name="type"/> namespace should be registered;
-        ///     otherwise, <c>false</c>.
-        /// </param>
         /// <returns>
+        ///     The type name for the type reference.
         /// </returns>
-        public TypeSyntax ResolveTypeName(Type type, bool includeTypeArguments = true, bool registerNamespace = true)
+        public TypeSyntax ResolveTypeName(Type type)
         {
-            return resolveTypeName(type, includeTypeArguments, registerNamespace);
+            return resolveTypeWithCaching(type, TypeRole.Instance).TypeSyntax;
         }
 
         /// <summary>
@@ -179,128 +146,293 @@ namespace Potter.ApiExtraction.Core.Generation
         /// </returns>
         public NameSyntax ResolveAttributeTypeName(Type type)
         {
+            // Attributes will not have generic arguments so the base name is sufficient.
             return IdentifierName(
-                resolveTypeName(type,
-                    includeTypeArguments: false,
-                    registerNamespace: true,
-                    isAttributeDefinition: true).ToString()
+                resolveTypeWithCaching(type, TypeRole.Instance, isAttributeDefinition: true).BaseIdentifier
             );
         }
 
-        private TypeSyntax resolveTypeName(Type type,
-            bool includeTypeArguments,
-            bool registerNamespace,
-            bool isAttributeDefinition = false)
+        /// <summary>
+        ///     Determines whether the specified type matches the configuration parameters.
+        /// </summary>
+        /// <param name="type">
+        ///     The type to check.
+        /// </param>
+        /// <returns>
+        ///     <c>true</c> if <paramref name="type"/> exists in the configured assembly and matches
+        ///     the type filter; otherwise, <c>false</c>.
+        /// </returns>
+        public bool IsApiType(Type type)
         {
+            // Generic type parameters never match.
             if (type.IsGenericParameter)
             {
-                return IdentifierName(type.Name);
+                return false;
             }
 
-            // Unwrap by-ref types.
-            if (type.IsByRef)
+            if (Configuration.Assembly == null)
             {
-                type = type.GetElementType();
+                return false;
             }
 
-            // Check if it is a predefined type.
-            var predefinedSyntaxKind = tryGetPredefinedSyntaxKind(type);
-            if (predefinedSyntaxKind.HasValue)
+            AssemblyName configuredAssembly;
+            if (string.IsNullOrEmpty(Configuration.Assembly.Name) == false)
             {
-                return PredefinedType(Token(predefinedSyntaxKind.Value));
+                configuredAssembly = new AssemblyName(Configuration.Assembly.Name);
             }
-
-            // Check if it is a nullable type.
-            if (type.IsGenericType && typeof(Nullable<>).IsEquivalentTo(type.GetGenericTypeDefinition()))
+            else if (string.IsNullOrEmpty(Configuration.Assembly.Location) == false)
             {
-                // TODO: What should we return when includeTypeArguments is false? (Daniel Potter,
-                //       11/21/2017)
-                return NullableType(
-                    elementType: resolveTypeName(type.GetGenericArguments()[0],
-                        includeTypeArguments: true,
-                        registerNamespace: registerNamespace)
-                );
-            }
-
-            string typeName = getBaseTypeName(type);
-
-            // Handle type transformations.
-            string fullTypeNameWithArity = $"{type.Namespace}.{type.Name}";
-
-            if (_externalTypeTransformations.TryGetValue(fullTypeNameWithArity, out Type transformType))
-            {
-                if (transformType.IsGenericType)
-                {
-                    var constructedType = transformType.MakeGenericType(type.GenericTypeArguments);
-
-                    return resolveTypeName(constructedType,
-                        includeTypeArguments: includeTypeArguments,
-                        registerNamespace: registerNamespace);
-                }
-                else
-                {
-                    return resolveTypeName(transformType,
-                        includeTypeArguments: includeTypeArguments,
-                        registerNamespace: registerNamespace);
-                }
-            }
-
-            // Handle attributes definitions.
-            if (isAttributeDefinition && type.IsSubclassOf(typeof(Attribute)) && typeName.EndsWith(nameof(Attribute)))
-            {
-                typeName = typeName.Remove(typeName.Length - nameof(Attribute).Length);
-            }
-
-            SimpleNameSyntax typeNameSyntax;
-            if (includeTypeArguments && type.IsGenericType)
-            {
-                var typeArguments = type.GetGenericArguments().Select(
-                    typeArgument =>
-                    {
-                        return resolveTypeName(typeArgument,
-                            includeTypeArguments: includeTypeArguments,
-                            registerNamespace: registerNamespace);
-                    });
-
-                typeNameSyntax = GenericName(
-                    identifier: Identifier(typeName),
-                    typeArgumentList: TypeArgumentList(SeparatedList(typeArguments))
-                );
+                configuredAssembly = AssemblyName.GetAssemblyName(Configuration.Assembly.Location);
             }
             else
             {
-                typeNameSyntax = IdentifierName(typeName);
+                return false;
             }
 
-            if (TypeConfiguration.SimplifyNamespaces)
+            if (type.Assembly.FullName != configuredAssembly.FullName)
             {
-                if (registerNamespace)
+                return false;
+            }
+
+            bool matches = isMatch(Configuration.Types);
+
+            bool addMatches = Configuration.Types.Mode == TypeMode.Whitelist;
+
+            System.Diagnostics.Debug.WriteLine($"Type: {type.FullName}, IsMatch: {matches}, AddingMatches: {addMatches}");
+            return matches == addMatches;
+
+            bool isMatch(TypeConfiguration typeConfiguration)
+            {
+                if (typeConfiguration.Items == null)
                 {
-                    _namespaces.Add(type.Namespace);
+                    return false;
                 }
+
+                foreach (var selector in typeConfiguration.Items)
+                {
+                    switch (selector)
+                    {
+                        case TypeSelector typeSelector:
+                            if (string.Equals(type.Name, selector.Name))
+                            {
+                                return true;
+                            }
+                            break;
+
+                        case NamespaceSelector namespaceSelector:
+                            if (string.Equals(type.Namespace, selector.Name))
+                            {
+                                return true;
+                            }
+
+                            if (namespaceSelector.Recursive && type.Namespace.StartsWith(selector.Name + "."))
+                            {
+                                return true;
+                            }
+                            break;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        private struct TypeResolutionArgs
+        {
+            public Type Type;
+            public TypeRole TypeRole;
+
+            public bool IsAttributeDefinition;
+            public bool QualifyType;
+
+            public override bool Equals(object obj)
+            {
+                return EasyHash.EasyHash<TypeResolutionArgs>.Equals(this, obj);
+            }
+
+            public override int GetHashCode()
+            {
+                return EasyHash.EasyHash<TypeResolutionArgs>.GetHashCode(this);
+            }
+        }
+
+        private TypeResolution resolveTypeWithCaching(Type type, TypeRole typeRole, bool isAttributeDefinition = false)
+        {
+            var args = new TypeResolutionArgs
+            {
+                Type = type,
+                TypeRole = typeRole,
+                IsAttributeDefinition = isAttributeDefinition,
+                QualifyType = Configuration.Types.SimplifyNamespaces == false,
+            };
+
+            if (_typeCache.TryGetValue(args, out TypeResolution typeResolution) == false)
+            {
+                _typeCache[args] = typeResolution = resolveType(args);
+            }
+
+            return typeResolution;
+        }
+
+        private TypeResolution resolveType(TypeResolutionArgs args)
+        {
+            SyntaxToken baseName;
+            TypeSyntax fullName;
+
+            if (IsApiType(args.Type))
+            {
+                baseName = resolveBaseApiTypeToken(args.Type, args.TypeRole);
+            }
+            else
+            {
+                baseName = resolveBaseTypeToken(args.Type, args.IsAttributeDefinition);
+            }
+
+            fullName = resolveTypeName(args.Type, baseName);
+
+            return new TypeResolution(baseName, fullName);
+
+            SyntaxToken resolveBaseApiTypeToken(Type type, TypeRole role)
+            {
+                // TODO: Allow names from configuration. (Daniel Potter, 11/21/2017)
+                var nameBuilder = new StringBuilder();
+
+                if (type.IsInterface == false && type.IsEnum == false)
+                {
+                    nameBuilder.Append('I');
+                }
+
+                if (type.IsGenericType)
+                {
+                    nameBuilder.Append(type.Name.Substring(0, type.Name.IndexOf('`')));
+                }
+                else
+                {
+                    nameBuilder.Append(type.Name);
+                }
+
+                switch (role)
+                {
+                    case TypeRole.Factory:
+                        nameBuilder.Append("Factory");
+                        break;
+
+                    case TypeRole.Manager:
+                        nameBuilder.Append("Manager");
+                        break;
+                }
+
+                return Identifier(nameBuilder.ToString());
+            }
+
+            SyntaxToken resolveBaseTypeToken(Type type, bool isAttributeDefinition = false)
+            {
+                if (type.IsGenericParameter)
+                {
+                    return Identifier(type.Name);
+                }
+
+                // Unwrap by-ref types.
+                if (type.IsByRef)
+                {
+                    type = type.GetElementType();
+                }
+
+                // Check if it is a predefined type.
+                var predefinedSyntaxKind = tryGetPredefinedSyntaxKind(type);
+                if (predefinedSyntaxKind.HasValue)
+                {
+                    return Token(predefinedSyntaxKind.Value);
+                }
+
+                if (type.IsGenericType)
+                {
+                    if (typeof(Nullable<>).IsEquivalentTo(type.GetGenericTypeDefinition()))
+                    {
+                        // Unwrap the nullable type.
+                        return resolveBaseTypeToken(type.GetGenericArguments()[0]);
+                    }
+
+                    return Identifier(type.Name.Substring(0, type.Name.IndexOf('`')));
+                }
+
+                // Handle attributes definitions.
+                if (isAttributeDefinition && type.IsSubclassOf(typeof(Attribute)) && type.Name.EndsWith(nameof(Attribute)))
+                {
+                    Identifier(type.Name.Remove(type.Name.Length - nameof(Attribute).Length));
+                }
+
+                return Identifier(type.Name);
+            }
+
+            TypeSyntax resolveTypeName(Type type, SyntaxToken? baseTypeName = null)
+            {
+                var typeName = baseTypeName ?? resolveBaseTypeToken(type);
+
+                // Check if it is a predefined type.
+                if (typeName.IsKeyword())
+                {
+                    return PredefinedType(typeName);
+                }
+
+                // Check if it is a nullable type.
+                if (type.IsGenericType && typeof(Nullable<>).IsEquivalentTo(type.GetGenericTypeDefinition()))
+                {
+                    return NullableType(
+                        elementType: resolveTypeName(type.GetGenericArguments()[0])
+                    );
+                }
+
+                // Handle type transformations.
+                string qualifiedBaseTypeNameWithArity = $"{type.Namespace}.{type.Name}";
+
+                if (_externalTypeTransformations.TryGetValue(qualifiedBaseTypeNameWithArity, out Type transformType))
+                {
+                    if (transformType.IsGenericType)
+                    {
+                        var constructedType = transformType.MakeGenericType(type.GenericTypeArguments);
+
+                        return resolveTypeName(constructedType);
+                    }
+                    else
+                    {
+                        return resolveTypeName(transformType);
+                    }
+                }
+
+                SimpleNameSyntax typeNameSyntax;
+                if (type.IsGenericType)
+                {
+                    var typeArguments = type.GetGenericArguments()
+                        .Select(typeArgument => resolveTypeName(typeArgument));
+
+                    typeNameSyntax = GenericName(
+                        identifier: typeName,
+                        typeArgumentList: TypeArgumentList(SeparatedList(typeArguments))
+                    );
+                }
+                else
+                {
+                    typeNameSyntax = IdentifierName(typeName);
+                }
+
+                if (args.QualifyType)
+                {
+                    return QualifiedName(
+                        left: AliasQualifiedName(
+                            alias: IdentifierName(
+                                Token(SyntaxKind.GlobalKeyword)
+                            ),
+                            name: IdentifierName(type.Namespace)
+                        ),
+                        right: typeNameSyntax
+                    );
+                }
+
+                _namespaces.Add(type.Namespace);
 
                 return typeNameSyntax;
             }
-
-            return QualifiedName(
-                left: AliasQualifiedName(
-                    alias: IdentifierName(
-                        Token(SyntaxKind.GlobalKeyword)
-                    ),
-                    name: IdentifierName(type.Namespace)
-                ),
-                right: typeNameSyntax
-            );
-        }
-
-        private string getBaseTypeName(Type type)
-        {
-            if (type.IsGenericType)
-            {
-                return type.Name.Substring(0, type.Name.IndexOf('`'));
-            }
-
-            return type.Name;
         }
 
         private SyntaxKind? tryGetPredefinedSyntaxKind(Type type)
@@ -374,6 +506,20 @@ namespace Potter.ApiExtraction.Core.Generation
             }
 
             return null;
+        }
+
+        #endregion
+
+        #region Type Caching
+
+        private readonly Dictionary<TypeResolutionArgs, TypeResolution> _typeCache = new Dictionary<TypeResolutionArgs, TypeResolution>();
+
+        /// <summary>
+        ///     Clears the type cache.
+        /// </summary>
+        public void ClearTypeCache()
+        {
+            _typeCache.Clear();
         }
 
         #endregion

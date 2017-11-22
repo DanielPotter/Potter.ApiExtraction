@@ -36,75 +36,34 @@ namespace Potter.ApiExtraction.Core.Generation
         ///     A sequence of <see cref="CompilationUnitSyntax"/> objects representing interface source
         ///     code.
         /// </returns>
-        public IEnumerable<CompilationUnitSyntax> ReadAssembly(Assembly assembly, TypeConfiguration configuration = null)
+        public IEnumerable<CompilationUnitSyntax> ReadAssembly(Assembly assembly, ApiConfiguration configuration = null)
         {
             if (configuration == null)
             {
-                configuration = new TypeConfiguration();
+                configuration = new ApiConfiguration
+                {
+                    Types = new TypeConfiguration(),
+                };
             }
+
+            var typeNameResolver = new TypeNameResolver(configuration ?? new ApiConfiguration());
 
             Console.WriteLine($"Reading assembly: {assembly.FullName} ({assembly.Location})");
 
-            foreach (Type type in findConfiguredTypes(assembly.ExportedTypes, configuration))
+            foreach (Type type in assembly.ExportedTypes)
             {
-                if (configuration.IncludeObsolete == false && type.IsDeprecated(out string reason))
+                if (typeNameResolver.IsApiType(type) == false)
                 {
                     continue;
                 }
 
-                yield return ReadCompilationUnit(type, configuration);
-            }
-        }
-
-        private IEnumerable<Type> findConfiguredTypes(IEnumerable<Type> types, TypeConfiguration typesConfiguration)
-        {
-            bool addMatches = typesConfiguration.Mode == TypeMode.Whitelist;
-
-            foreach (Type type in types)
-            {
-                bool matches = isMatch(type, typesConfiguration.Items);
-
-                System.Diagnostics.Debug.WriteLine($"Type: {type.FullName}, IsMatch: {matches}, AddingMatches: {addMatches}");
-                if (matches == addMatches)
+                if (configuration.Types.IncludeObsolete == false && type.IsDeprecated(out string reason))
                 {
-                    yield return type;
+                    continue;
                 }
+
+                yield return ReadCompilationUnit(type, typeNameResolver);
             }
-        }
-
-        private bool isMatch(Type type, IEnumerable<MemberSelector> selectors)
-        {
-            if (selectors == null)
-            {
-                return false;
-            }
-
-            foreach (var selector in selectors)
-            {
-                switch (selector)
-                {
-                    case TypeSelector typeSelector:
-                        if (string.Equals(type.Name, selector.Name))
-                        {
-                            return true;
-                        }
-                        break;
-
-                    case NamespaceSelector namespaceSelector:
-                        if (string.Equals(type.Namespace, selector.Name))
-                        {
-                            return true;
-                        }
-
-                        if (namespaceSelector.Recursive && type.Namespace.StartsWith(selector.Name + "."))
-                        {
-                            return true;
-                        }
-                        break;
-                }
-            }
-
-            return false;
         }
 
         #endregion
@@ -117,25 +76,26 @@ namespace Potter.ApiExtraction.Core.Generation
         /// <param name="type">
         ///     The type for which to generate.
         /// </param>
-        /// <param name="configuration">
-        ///     Specifies how the type should be read.
+        /// <param name="typeNameResolver">
+        ///     The name resolver for types.
         /// </param>
         /// <returns>
         ///     A <see cref="CompilationUnitSyntax"/> object representing the source code for a
         ///     namespace with an interface.
         /// </returns>
-        public CompilationUnitSyntax ReadCompilationUnit(Type type, TypeConfiguration configuration = null)
+        public CompilationUnitSyntax ReadCompilationUnit(Type type, TypeNameResolver typeNameResolver = null)
         {
-            var typeNameResolver = new TypeNameResolver(configuration ?? new TypeConfiguration());
-
             NamespaceDeclarationSyntax namespaceDeclaration = readNamespace(type, typeNameResolver);
-            IEnumerable<string> usings = typeNameResolver.GetRegisteredNamespaces();
+            IEnumerable<UsingDirectiveSyntax> usings = typeNameResolver.GetRegisteredNamespaces()
+                .Where(qualifiedNamespace => qualifiedNamespace != type.Namespace)
+                .OrderBy(qualifiedNamespace => qualifiedNamespace)
+                .Select(qualifiedNamespace => UsingDirective(ParseName(qualifiedNamespace)));
 
             var compilationUnit = CompilationUnit()
                 .WithMembers(SingletonList<MemberDeclarationSyntax>(namespaceDeclaration));
 
             compilationUnit = compilationUnit
-                .WithUsings(List(usings.Select(qualifiedNamespace => UsingDirective(ParseName(qualifiedNamespace)))));
+                .WithUsings(List(usings));
 
             return compilationUnit;
         }
@@ -175,15 +135,15 @@ namespace Potter.ApiExtraction.Core.Generation
                 {
                     switch (member.role)
                     {
-                        case InterfaceRole.Instance:
+                        case TypeRole.Instance:
                             instanceMembers.Add(member.member);
                             break;
 
-                        case InterfaceRole.Factory:
+                        case TypeRole.Factory:
                             factoryMembers.Add(member.member);
                             break;
 
-                        case InterfaceRole.Manager:
+                        case TypeRole.Manager:
                             managerMembers.Add(member.member);
                             break;
                     }
@@ -193,25 +153,25 @@ namespace Potter.ApiExtraction.Core.Generation
 
                 if (isStatic == false)
                 {
-                    yield return createInterface(type, instanceMembers, typeNameResolver, InterfaceRole.Instance);
+                    yield return createInterface(type, instanceMembers, typeNameResolver, TypeRole.Instance);
 
                     if (factoryMembers.Count > 0)
                     {
-                        yield return createInterface(type, factoryMembers, typeNameResolver, InterfaceRole.Factory);
+                        yield return createInterface(type, factoryMembers, typeNameResolver, TypeRole.Factory);
                     }
                 }
 
                 if (isStatic || managerMembers.Count > 0)
                 {
-                    yield return createInterface(type, managerMembers, typeNameResolver, InterfaceRole.Manager);
+                    yield return createInterface(type, managerMembers, typeNameResolver, TypeRole.Manager);
                 }
             }
         }
 
-        private InterfaceDeclarationSyntax createInterface(Type type, IEnumerable<MemberDeclarationSyntax> members, TypeNameResolver typeNameResolver, InterfaceRole role)
+        private InterfaceDeclarationSyntax createInterface(Type type, IEnumerable<MemberDeclarationSyntax> members, TypeNameResolver typeNameResolver, TypeRole role)
         {
             var interfaceDeclaration = InterfaceDeclaration(typeNameResolver.GetApiTypeIdentifier(type, role))
-                .WithBaseList(role == InterfaceRole.Instance ? getBaseList(type, typeNameResolver) : null)
+                .WithBaseList(role == TypeRole.Instance ? getBaseList(type, typeNameResolver) : null)
                 .WithMembers(List(members))
                 .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
 
@@ -265,7 +225,7 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private EnumDeclarationSyntax createEnum(Type type, TypeNameResolver typeNameResolver)
         {
-            var enumDeclaration = EnumDeclaration(typeNameResolver.GetApiTypeIdentifier(type, InterfaceRole.Instance))
+            var enumDeclaration = EnumDeclaration(typeNameResolver.GetApiTypeIdentifier(type, TypeRole.Instance))
                 .WithMembers(SeparatedList(getEnumMembers(type, typeNameResolver)))
                 .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
 
@@ -290,7 +250,7 @@ namespace Potter.ApiExtraction.Core.Generation
                 }
 
                 bool isObsolete = type.IsDeprecated(out string reason);
-                if (isObsolete && typeNameResolver.TypeConfiguration.IncludeObsolete == false)
+                if (isObsolete && typeNameResolver.Configuration.Types.IncludeObsolete == false)
                 {
                     continue;
                 }
@@ -314,14 +274,14 @@ namespace Potter.ApiExtraction.Core.Generation
             return EnumMemberDeclaration(fieldInfo.Name);
         }
 
-        private IEnumerable<(MemberDeclarationSyntax member, InterfaceRole role)> getMembers(Type type, TypeNameResolver typeNameResolver)
+        private IEnumerable<(MemberDeclarationSyntax member, TypeRole role)> getMembers(Type type, TypeNameResolver typeNameResolver)
         {
             // Structs do not contain default constructors.  Therefore, we must add one ourselves.
             if (type.IsValueType)
             {
                 MethodDeclarationSyntax constructoMethodDeclaration = getDefaultConstructorMethod(type, typeNameResolver);
 
-                yield return (constructoMethodDeclaration, InterfaceRole.Factory);
+                yield return (constructoMethodDeclaration, TypeRole.Factory);
             }
 
             foreach (MemberInfo memberInfo in type.GetMembers(AllPublicMembers))
@@ -333,7 +293,7 @@ namespace Potter.ApiExtraction.Core.Generation
 
                 bool isObsolete = memberInfo.IsDeprecated(out string reason);
 
-                if (isObsolete && typeNameResolver.TypeConfiguration.IncludeObsolete == false)
+                if (isObsolete && typeNameResolver.Configuration.Types.IncludeObsolete == false)
                 {
                     continue;
                 }
@@ -354,7 +314,7 @@ namespace Potter.ApiExtraction.Core.Generation
                                 );
                         }
 
-                        yield return (constructorMethodDeclaration, InterfaceRole.Factory);
+                        yield return (constructorMethodDeclaration, TypeRole.Factory);
                         break;
 
                     case MemberTypes.Event:
@@ -382,7 +342,7 @@ namespace Potter.ApiExtraction.Core.Generation
                                 .AddModifiers(Token(SyntaxKind.NewKeyword));
                         }
 
-                        yield return (eventDeclaration, eventInfo.AddMethod.IsStatic ? InterfaceRole.Manager : InterfaceRole.Instance);
+                        yield return (eventDeclaration, eventInfo.AddMethod.IsStatic ? TypeRole.Manager : TypeRole.Instance);
                         break;
 
                     case MemberTypes.Field:
@@ -409,7 +369,7 @@ namespace Potter.ApiExtraction.Core.Generation
                                 );
                         }
 
-                        yield return (fieldPropertyDeclaration, fieldInfo.IsStatic ? InterfaceRole.Manager : InterfaceRole.Instance);
+                        yield return (fieldPropertyDeclaration, fieldInfo.IsStatic ? TypeRole.Manager : TypeRole.Instance);
                         break;
 
                     case MemberTypes.Method:
@@ -442,7 +402,7 @@ namespace Potter.ApiExtraction.Core.Generation
                                 .AddModifiers(Token(SyntaxKind.NewKeyword));
                         }
 
-                        yield return (methodDeclaration, methodInfo.IsStatic ? InterfaceRole.Manager : InterfaceRole.Instance);
+                        yield return (methodDeclaration, methodInfo.IsStatic ? TypeRole.Manager : TypeRole.Instance);
                         break;
 
                     case MemberTypes.Property:
@@ -473,7 +433,7 @@ namespace Potter.ApiExtraction.Core.Generation
                             }
 
                             // Indexers cannot be static.
-                            yield return (indexerDeclaration, InterfaceRole.Instance);
+                            yield return (indexerDeclaration, TypeRole.Instance);
                         }
                         else
                         {
@@ -493,7 +453,7 @@ namespace Potter.ApiExtraction.Core.Generation
                                     .AddModifiers(Token(SyntaxKind.NewKeyword));
                             }
 
-                            yield return (propertyDeclaration, propertyInfo.GetAccessors()[0].IsStatic ? InterfaceRole.Manager : InterfaceRole.Instance);
+                            yield return (propertyDeclaration, propertyInfo.GetAccessors()[0].IsStatic ? TypeRole.Manager : TypeRole.Instance);
                         }
                         break;
 
@@ -510,10 +470,10 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private MethodDeclarationSyntax getDefaultConstructorMethod(Type type, TypeNameResolver typeNameResolver)
         {
-            TypeSyntax returnTypeSyntax = typeNameResolver.GetApiTypeIdentifierName(type, InterfaceRole.Instance);
-            TypeSyntax rawTypeSyntax = typeNameResolver.ResolveTypeName(type, includeTypeArguments: false, registerNamespace: false);
+            TypeSyntax returnTypeSyntax = typeNameResolver.GetApiTypeIdentifierName(type, TypeRole.Instance);
+            string baseName = getBaseTypeNameWithoutPrefix(type, typeNameResolver);
 
-            MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + rawTypeSyntax.ToString()))
+            MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + baseName))
                 .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
 
             return methodDeclaration;
@@ -521,14 +481,28 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private MethodDeclarationSyntax getConstructorMethod(ConstructorInfo constructorInfo, TypeNameResolver typeNameResolver)
         {
-            TypeSyntax returnTypeSyntax = typeNameResolver.GetApiTypeIdentifierName(constructorInfo.DeclaringType, InterfaceRole.Instance);
-            TypeSyntax rawTypeSyntax = typeNameResolver.ResolveTypeName(constructorInfo.DeclaringType, includeTypeArguments: false, registerNamespace: false);
+            TypeSyntax returnTypeSyntax = typeNameResolver.GetApiTypeIdentifierName(constructorInfo.DeclaringType, TypeRole.Instance);
+            string baseName = getBaseTypeNameWithoutPrefix(constructorInfo.DeclaringType, typeNameResolver);
 
-            MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + rawTypeSyntax.ToString()))
+            MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + baseName))
                 .WithParameterList(ParameterList(SeparatedList(getParameters(typeNameResolver, constructorInfo.GetParameters()))))
                 .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
 
             return methodDeclaration;
+        }
+
+        private static string getBaseTypeNameWithoutPrefix(Type type, TypeNameResolver typeNameResolver)
+        {
+            string baseName = typeNameResolver.GetApiTypeIdentifier(type, TypeRole.Instance).Text;
+
+            if ((type.IsClass || type.IsInterface || type.IsSealed)
+                && baseName.Length > 1 && baseName[0] == 'I' && char.IsUpper(baseName[1]))
+            {
+                // Remove the 'I' interface prefix if one exists.
+                baseName = baseName.Substring(1);
+            }
+
+            return baseName;
         }
 
         private EventFieldDeclarationSyntax getEvent(EventInfo eventInfo, TypeNameResolver typeNameResolver)
@@ -761,7 +735,7 @@ namespace Potter.ApiExtraction.Core.Generation
                 && _ignoredBaseTypes.Contains(type.BaseType) == false
                 && type.BaseType.FullName != "System.Runtime.InteropServices.WindowsRuntime.RuntimeClass")
             {
-                yield return SimpleBaseType(typeNameResolver.GetApiTypeIdentifierName(type.BaseType, InterfaceRole.Instance));
+                yield return SimpleBaseType(typeNameResolver.GetApiTypeIdentifierName(type.BaseType, TypeRole.Instance));
             }
 
             foreach (var implementedInterface in type.GetInterfaces())
@@ -771,7 +745,7 @@ namespace Potter.ApiExtraction.Core.Generation
                     continue;
                 }
 
-                yield return SimpleBaseType(typeNameResolver.GetApiTypeIdentifierName(implementedInterface, InterfaceRole.Instance));
+                yield return SimpleBaseType(typeNameResolver.GetApiTypeIdentifierName(implementedInterface, TypeRole.Instance));
             }
         }
 
