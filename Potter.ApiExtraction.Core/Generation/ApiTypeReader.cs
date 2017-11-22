@@ -711,7 +711,9 @@ namespace Potter.ApiExtraction.Core.Generation
         private IEnumerable<BaseTypeSyntax> getBaseTypes(Type type, TypeNameResolver typeNameResolver)
         {
 
-            if (type.BaseType != null && _ignoredBaseTypes.Contains(type.BaseType) == false)
+            if (type.BaseType != null
+                && _ignoredBaseTypes.Contains(type.BaseType) == false
+                && type.BaseType.FullName != "System.Runtime.InteropServices.WindowsRuntime.RuntimeClass")
             {
                 yield return SimpleBaseType(typeNameResolver.GetApiTypeIdentifierName(type.BaseType, InterfaceRole.Instance));
             }
