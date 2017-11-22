@@ -386,7 +386,30 @@ namespace Potter.ApiExtraction.Core.Generation
                         break;
 
                     case MemberTypes.Field:
-                        // TODO: Constants need to be handled somehow. (Daniel Potter, 11/8/2017)
+                        var fieldInfo = (FieldInfo) memberInfo;
+
+                        if (fieldInfo.IsSpecialName)
+                        {
+                            continue;
+                        }
+
+                        // TODO: Constants need to be handled. (Daniel Potter, 11/8/2017)
+                        if (fieldInfo.IsLiteral)
+                        {
+                            continue;
+                        }
+
+                        PropertyDeclarationSyntax fieldPropertyDeclaration = getFieldProperty(fieldInfo, typeNameResolver);
+
+                        if (isObsolete)
+                        {
+                            fieldPropertyDeclaration = fieldPropertyDeclaration
+                                .AddAttributeLists(
+                                    createObsoleteAttribute(typeNameResolver, reason)
+                                );
+                        }
+
+                        yield return (fieldPropertyDeclaration, fieldInfo.IsStatic ? InterfaceRole.Manager : InterfaceRole.Instance);
                         break;
 
                     case MemberTypes.Method:
@@ -530,6 +553,24 @@ namespace Potter.ApiExtraction.Core.Generation
             }
 
             return methodDeclaration;
+        }
+
+        private PropertyDeclarationSyntax getFieldProperty(FieldInfo fieldInfo, TypeNameResolver typeNameResolver)
+        {
+            IEnumerable<AccessorDeclarationSyntax> getAccessors()
+            {
+                yield return AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
+                    .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
+
+                if (fieldInfo.IsInitOnly == false)
+                {
+                    yield return AccessorDeclaration(SyntaxKind.SetAccessorDeclaration)
+                        .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
+                }
+            }
+
+            return PropertyDeclaration(typeNameResolver.ResolveTypeName(fieldInfo.FieldType), fieldInfo.Name)
+                .WithAccessorList(AccessorList(List(getAccessors())));
         }
 
         private IEnumerable<ParameterSyntax> getParameters(TypeNameResolver typeNameResolver, params ParameterInfo[] parameters)

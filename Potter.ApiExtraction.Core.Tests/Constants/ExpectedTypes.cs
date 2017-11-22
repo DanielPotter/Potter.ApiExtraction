@@ -47,6 +47,51 @@ namespace Potter.ApiExtraction.Core.Tests
             },
         };
 
+        public static Expectation SimpleFields { get; } = new Expectation
+        {
+            Type = typeof(Types.SimpleFields),
+            TypeConfiguration = _defaultTypeConfiguration,
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.SimpleFields).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation(TypeKind.Interface)
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.SimpleFields)}",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Property)
+                                    {
+                                        Declaration = $"int{nameof(Types.SimpleFields.Value)}{{get;set;}}",
+                                    },
+                                    new MemberExpectation(MemberType.Property)
+                                    {
+                                        Declaration = $"int{nameof(Types.SimpleFields.ReadOnlyValue)}{{get;}}",
+                                    },
+                                },
+                            },
+                            new TypeExpectation(TypeKind.Interface)
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.SimpleFields)}Factory",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.SimpleFields)}Create{nameof(Types.SimpleFields)}()",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
         public static Expectation SimpleProperties { get; } = new Expectation
         {
             Type = typeof(Types.SimpleProperties),
@@ -918,6 +963,13 @@ namespace Potter.ApiExtraction.Types
 {
     public class EmptyClass
     {
+    }
+
+    public class SimpleFields
+    {
+        public int Value;
+
+        public readonly int ReadOnlyValue;
     }
 
     public class SimpleProperties

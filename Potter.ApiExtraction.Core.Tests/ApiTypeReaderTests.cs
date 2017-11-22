@@ -26,6 +26,17 @@ namespace Potter.ApiExtraction.Core.Tests
         }
 
         [TestMethod]
+        public void Read_SimpleFields()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.SimpleFields;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
+        [TestMethod]
         public void Read_SimpleProperties()
         {
             // Arrange
