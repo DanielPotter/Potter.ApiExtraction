@@ -554,7 +554,7 @@ namespace Potter.ApiExtraction.Core.Generation
                 {
                     // TODO: Handle optional parameters. (Daniel Potter, 11/8/2017)
                 }
-                else if (parameterInfo.GetCustomAttribute(typeof(ParamArrayAttribute)) != null)
+                else if (parameterInfo.HasAttribute<ParamArrayAttribute>())
                 {
                     parameterSyntax = parameterSyntax.AddModifiers(Token(SyntaxKind.ParamKeyword));
                 }
@@ -919,7 +919,7 @@ namespace Potter.ApiExtraction.Core.Generation
                 }
                 else
                 {
-                    return innerMemberInfo.GetCustomAttribute(attributeType) != null;
+                    return innerMemberInfo.IsDefined(attributeType);
                 }
             }
         }
@@ -960,6 +960,33 @@ namespace Potter.ApiExtraction.Core.Generation
             }
 
             return false;
+        }
+
+        public static bool HasAttribute<T>(this ParameterInfo parameterInfo)
+            where T : Attribute
+        {
+            Type attributeType = typeof(T);
+
+            Type declaringType = parameterInfo.Member as Type ?? parameterInfo.Member.DeclaringType;
+            bool isReflectionOnly = declaringType.Assembly.ReflectionOnly;
+
+            if (isReflectionOnly)
+            {
+                IList<CustomAttributeData> customAttributes = parameterInfo.GetCustomAttributesData();
+
+                return customAttributes.Any(attribute => attributeType.IsEquivalentTo(attribute.AttributeType));
+            }
+            else
+            {
+                return parameterInfo.IsDefined(attributeType);
+            }
+        }
+
+        public static bool HasAttribute(this ParameterInfo parameterInfo, Func<CustomAttributeData, bool> attributeTest)
+        {
+            IList<CustomAttributeData> customAttributes = parameterInfo.GetCustomAttributesData();
+
+            return customAttributes.Any(attributeTest);
         }
     }
 
