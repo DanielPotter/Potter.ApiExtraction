@@ -9,6 +9,8 @@ using Potter.ApiExtraction.Core.Configuration;
 
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
+using CompilerGeneratedAttribute = System.Runtime.CompilerServices.CompilerGeneratedAttribute;
+
 namespace Potter.ApiExtraction.Core.Generation
 {
     /// <summary>
@@ -282,7 +284,7 @@ namespace Potter.ApiExtraction.Core.Generation
         {
             foreach (var fieldInfo in type.GetFields())
             {
-                if (fieldInfo.IsSpecialName || fieldInfo.HasAttribute<System.Runtime.CompilerServices.CompilerGeneratedAttribute>())
+                if (fieldInfo.IsSpecialName || fieldInfo.HasAttribute<CompilerGeneratedAttribute>(checkAccessors: false))
                 {
                     continue;
                 }
@@ -324,7 +326,7 @@ namespace Potter.ApiExtraction.Core.Generation
 
             foreach (MemberInfo memberInfo in type.GetMembers(AllPublicMembers))
             {
-                if (memberInfo.HasAttribute<System.Runtime.CompilerServices.CompilerGeneratedAttribute>())
+                if (memberInfo.HasAttribute<CompilerGeneratedAttribute>(checkAccessors: false))
                 {
                     continue;
                 }
@@ -874,7 +876,7 @@ namespace Potter.ApiExtraction.Core.Generation
         {
             string innerReason = null;
 
-            bool isDeprecated = HasAttribute(memberInfo, hasAttributeTest);
+            bool isDeprecated = HasAttribute(memberInfo, hasAttributeTest, checkAccessors: true);
 
             reason = innerReason;
 
@@ -897,7 +899,7 @@ namespace Potter.ApiExtraction.Core.Generation
             }
         }
 
-        public static bool HasAttribute<T>(this MemberInfo memberInfo)
+        public static bool HasAttribute<T>(this MemberInfo memberInfo, bool checkAccessors)
             where T : Attribute
         {
             Type attributeType = typeof(T);
@@ -905,7 +907,7 @@ namespace Potter.ApiExtraction.Core.Generation
             Type declaringType = memberInfo as Type ?? memberInfo.DeclaringType;
             bool isReflectionOnly = declaringType.Assembly.ReflectionOnly;
 
-            return hasAttribute(memberInfo, hasAttributeTest);
+            return hasAttribute(memberInfo, hasAttributeTest, checkAccessors);
 
             bool hasAttributeTest(MemberInfo innerMemberInfo)
             {
@@ -922,9 +924,9 @@ namespace Potter.ApiExtraction.Core.Generation
             }
         }
 
-        public static bool HasAttribute(this MemberInfo memberInfo, Func<CustomAttributeData, bool> attributeTest)
+        public static bool HasAttribute(this MemberInfo memberInfo, Func<CustomAttributeData, bool> attributeTest, bool checkAccessors)
         {
-            return hasAttribute(memberInfo, hasAttributeTest);
+            return hasAttribute(memberInfo, hasAttributeTest, checkAccessors);
 
             bool hasAttributeTest(MemberInfo innerMemberInfo)
             {
@@ -934,25 +936,30 @@ namespace Potter.ApiExtraction.Core.Generation
             }
         }
 
-        private static bool hasAttribute(MemberInfo memberInfo, Func<MemberInfo, bool> attributeTest)
+        private static bool hasAttribute(MemberInfo memberInfo, Func<MemberInfo, bool> attributeTest, bool checkAccessors)
         {
             if (attributeTest(memberInfo))
             {
                 return true;
             }
 
-            switch (memberInfo.MemberType)
+            if (checkAccessors)
             {
-                case MemberTypes.Event:
-                    EventInfo eventInfo = (EventInfo) memberInfo;
-                    return attributeTest(eventInfo.AddMethod) || attributeTest(eventInfo.RemoveMethod);
+                switch (memberInfo.MemberType)
+                {
+                    case MemberTypes.Event:
+                        EventInfo eventInfo = (EventInfo) memberInfo;
+                        return attributeTest(eventInfo.AddMethod) || attributeTest(eventInfo.RemoveMethod);
 
-                case MemberTypes.Property:
-                    return ((PropertyInfo) memberInfo).GetAccessors().Any(attributeTest);
+                    case MemberTypes.Property:
+                        return ((PropertyInfo) memberInfo).GetAccessors().Any(attributeTest);
 
-                default:
-                    return false;
+                    default:
+                        return false;
+                }
             }
+
+            return false;
         }
     }
 
