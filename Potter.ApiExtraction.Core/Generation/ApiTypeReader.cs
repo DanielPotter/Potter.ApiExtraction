@@ -541,8 +541,11 @@ namespace Potter.ApiExtraction.Core.Generation
                 {
                     parameterSyntax = parameterSyntax.AddModifiers(Token(SyntaxKind.OutKeyword));
                 }
-                else if (parameterInfo.IsIn)
+                else if (parameterInfo.ParameterType.IsByRef)
                 {
+                    // Since a by-ref type can only be either an out or a ref parameter and we have
+                    // already ruled out this being an out parameter, this parameter is a ref
+                    // parameter.
                     parameterSyntax = parameterSyntax.AddModifiers(Token(SyntaxKind.RefKeyword));
                 }
                 else if (parameterInfo.IsOptional)

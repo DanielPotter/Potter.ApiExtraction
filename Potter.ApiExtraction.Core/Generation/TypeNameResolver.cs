@@ -182,6 +182,12 @@ namespace Potter.ApiExtraction.Core.Generation
                 return IdentifierName(type.Name);
             }
 
+            // Unwrap by-ref types.
+            if (type.IsByRef)
+            {
+                type = type.GetElementType();
+            }
+
             // Check if it is a predefined type.
             var predefinedSyntaxKind = tryGetPredefinedSyntaxKind(type);
             if (predefinedSyntaxKind.HasValue)

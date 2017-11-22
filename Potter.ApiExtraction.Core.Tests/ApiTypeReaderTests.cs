@@ -70,6 +70,17 @@ namespace Potter.ApiExtraction.Core.Tests
         }
 
         [TestMethod]
+        public void Read_ReferenceMethods()
+        {
+            // Arrange
+            var apiTypeReader = new ApiTypeReader();
+            Expectation expectation = ExpectedTypes.ReferenceMethods;
+
+            // Assert
+            ReadExpectation(apiTypeReader, expectation);
+        }
+
+        [TestMethod]
         public void Read_GenericMethods()
         {
             // Arrange

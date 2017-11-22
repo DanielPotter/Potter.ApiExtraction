@@ -259,6 +259,51 @@ namespace Potter.ApiExtraction.Core.Tests
             },
         };
 
+        public static Expectation ReferenceMethods { get; } = new Expectation
+        {
+            Type = typeof(Types.ReferenceMethods),
+            TypeConfiguration = _defaultTypeConfiguration,
+            CompilationUnit = new CompilationUnitExpectation
+            {
+                Namespaces =
+                {
+                    new NamespaceExpectation
+                    {
+                        Namespace = typeof(Types.ReferenceMethods).Namespace,
+                        Types =
+                        {
+                            new TypeExpectation(TypeKind.Interface)
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.ReferenceMethods)}",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"void{nameof(Types.ReferenceMethods.Out)}(outintvalue)",
+                                    },
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"void{nameof(Types.ReferenceMethods.Ref)}(refintvalue)",
+                                    },
+                                },
+                            },
+                            new TypeExpectation(TypeKind.Interface)
+                            {
+                                Declaration = $"publicinterfaceI{nameof(Types.ReferenceMethods)}Factory",
+                                Members =
+                                {
+                                    new MemberExpectation(MemberType.Method)
+                                    {
+                                        Declaration = $"I{nameof(Types.ReferenceMethods)}Create{nameof(Types.ReferenceMethods)}()",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
         public static Expectation GenericMethods { get; } = new Expectation
         {
             Type = typeof(Types.GenericMethods),
@@ -947,6 +992,18 @@ namespace Potter.ApiExtraction.Types
         public object Function(bool arg1, int arg2)
         {
             return null;
+        }
+    }
+
+    public class ReferenceMethods
+    {
+        public void Out(out int value)
+        {
+            value = 0;
+        }
+
+        public void Ref(ref int value)
+        {
         }
     }
 
