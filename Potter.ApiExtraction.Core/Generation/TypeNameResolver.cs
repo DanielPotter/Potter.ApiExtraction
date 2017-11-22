@@ -52,6 +52,8 @@ namespace Potter.ApiExtraction.Core.Generation
 
         #endregion
 
+        #region API Type Names
+
         /// <summary>
         ///     Gets the identifier name for an API type as specified by the configuration.
         /// </summary>
@@ -135,6 +137,16 @@ namespace Potter.ApiExtraction.Core.Generation
             return Identifier(nameBuilder.ToString());
         }
 
+        #endregion
+
+        #region Name Resolution
+
+        private static readonly Dictionary<string, Type> _externalTypeTransformations = new Dictionary<string, Type>
+        {
+            ["Windows.Foundation.IAsyncAction"] = typeof(System.Threading.Tasks.Task),
+            ["Windows.Foundation.IAsyncOperation`1"] = typeof(System.Threading.Tasks.Task<>),
+        };
+
         /// <summary>
         ///     Resolves the type name for a type reference.
         /// </summary>
@@ -175,7 +187,10 @@ namespace Potter.ApiExtraction.Core.Generation
             );
         }
 
-        private TypeSyntax resolveTypeName(Type type, bool includeTypeArguments, bool registerNamespace, bool isAttributeDefinition = false)
+        private TypeSyntax resolveTypeName(Type type,
+            bool includeTypeArguments,
+            bool registerNamespace,
+            bool isAttributeDefinition = false)
         {
             if (type.IsGenericParameter)
             {
@@ -201,14 +216,36 @@ namespace Potter.ApiExtraction.Core.Generation
                 // TODO: What should we return when includeTypeArguments is false? (Daniel Potter,
                 //       11/21/2017)
                 return NullableType(
-                    elementType: ResolveTypeName(type.GetGenericArguments()[0],
-                        includeTypeArguments: false,
+                    elementType: resolveTypeName(type.GetGenericArguments()[0],
+                        includeTypeArguments: true,
                         registerNamespace: registerNamespace)
                 );
             }
 
             string typeName = getBaseTypeName(type);
 
+            // Handle type transformations.
+            string fullTypeNameWithArity = $"{type.Namespace}.{type.Name}";
+
+            if (_externalTypeTransformations.TryGetValue(fullTypeNameWithArity, out Type transformType))
+            {
+                if (transformType.IsGenericType)
+                {
+                    var constructedType = transformType.MakeGenericType(type.GenericTypeArguments);
+
+                    return resolveTypeName(constructedType,
+                        includeTypeArguments: includeTypeArguments,
+                        registerNamespace: registerNamespace);
+                }
+                else
+                {
+                    return resolveTypeName(transformType,
+                        includeTypeArguments: includeTypeArguments,
+                        registerNamespace: registerNamespace);
+                }
+            }
+
+            // Handle attributes definitions.
             if (isAttributeDefinition && type.IsSubclassOf(typeof(Attribute)) && typeName.EndsWith(nameof(Attribute)))
             {
                 typeName = typeName.Remove(typeName.Length - nameof(Attribute).Length);
@@ -217,13 +254,17 @@ namespace Potter.ApiExtraction.Core.Generation
             SimpleNameSyntax typeNameSyntax;
             if (includeTypeArguments && type.IsGenericType)
             {
+                var typeArguments = type.GetGenericArguments().Select(
+                    typeArgument =>
+                    {
+                        return resolveTypeName(typeArgument,
+                            includeTypeArguments: includeTypeArguments,
+                            registerNamespace: registerNamespace);
+                    });
+
                 typeNameSyntax = GenericName(
                     identifier: Identifier(typeName),
-                    typeArgumentList: TypeArgumentList(
-                        SeparatedList(
-                            type.GetGenericArguments().Select(typeArgument => ResolveTypeName(typeArgument, includeTypeArguments))
-                        )
-                    )
+                    typeArgumentList: TypeArgumentList(SeparatedList(typeArguments))
                 );
             }
             else
@@ -334,5 +375,7 @@ namespace Potter.ApiExtraction.Core.Generation
 
             return null;
         }
+
+        #endregion
     }
 }
