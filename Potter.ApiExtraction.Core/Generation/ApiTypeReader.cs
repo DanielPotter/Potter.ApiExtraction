@@ -45,6 +45,11 @@ namespace Potter.ApiExtraction.Core.Generation
 
             foreach (Type type in findConfiguredTypes(assembly.ExportedTypes, configuration))
             {
+                if (configuration.IncludeObsolete == false && type.IsDeprecated(out string reason))
+                {
+                    continue;
+                }
+
                 yield return ReadCompilationUnit(type, configuration);
             }
         }
@@ -203,38 +208,102 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private InterfaceDeclarationSyntax createInterface(Type type, IEnumerable<MemberDeclarationSyntax> members, TypeNameResolver typeNameResolver, InterfaceRole role)
         {
-            var instanceDeclaration = InterfaceDeclaration(typeNameResolver.GetApiTypeIdentifier(type, role))
+            var interfaceDeclaration = InterfaceDeclaration(typeNameResolver.GetApiTypeIdentifier(type, role))
                 .WithBaseList(role == InterfaceRole.Instance ? getBaseList(type, typeNameResolver) : null)
                 .WithMembers(List(members))
                 .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
 
             if (type.IsGenericType)
             {
-                instanceDeclaration = instanceDeclaration
+                interfaceDeclaration = interfaceDeclaration
                     .WithConstraintClauses(List(getTypeConstraints(type, typeNameResolver)))
                     .WithTypeParameterList(TypeParameterList(SeparatedList(getTypeParameters(type))));
             }
 
-            return instanceDeclaration;
+            if (type.IsDeprecated(out string reason))
+            {
+                interfaceDeclaration = interfaceDeclaration
+                    .AddAttributeLists(
+                        createObsoleteAttribute(typeNameResolver, reason)
+                    );
+            }
+
+            return interfaceDeclaration;
+        }
+
+        private static AttributeListSyntax createObsoleteAttribute(TypeNameResolver typeNameResolver, string reason)
+        {
+            AttributeSyntax attribute = Attribute(
+                name: typeNameResolver.ResolveAttributeTypeName(typeof(ObsoleteAttribute))
+            );
+
+            if (reason != null)
+            {
+                attribute = attribute
+                    .WithArgumentList(
+                        AttributeArgumentList(
+                            SingletonSeparatedList(
+                                AttributeArgument(
+                                    LiteralExpression(
+                                        kind: SyntaxKind.StringLiteralExpression,
+                                        token: Literal(reason)
+                                    )
+                                )
+                            )
+                        )
+                    );
+            }
+
+            return AttributeList(
+                SingletonSeparatedList(
+                    attribute
+                )
+            );
         }
 
         private EnumDeclarationSyntax createEnum(Type type, TypeNameResolver typeNameResolver)
         {
-            return EnumDeclaration(typeNameResolver.GetApiTypeIdentifier(type, InterfaceRole.Instance))
+            var enumDeclaration = EnumDeclaration(typeNameResolver.GetApiTypeIdentifier(type, InterfaceRole.Instance))
                 .WithMembers(SeparatedList(getEnumMembers(type, typeNameResolver)))
                 .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
+
+            if (type.IsDeprecated(out string reason))
+            {
+                enumDeclaration = enumDeclaration
+                    .AddAttributeLists(
+                        createObsoleteAttribute(typeNameResolver, reason)
+                    );
+            }
+
+            return enumDeclaration;
         }
 
         private IEnumerable<EnumMemberDeclarationSyntax> getEnumMembers(Type type, TypeNameResolver typeNameResolver)
         {
             foreach (var fieldInfo in type.GetFields())
             {
-                if (fieldInfo.IsSpecialName || isCompilerGenerated(fieldInfo))
+                if (fieldInfo.IsSpecialName || fieldInfo.HasAttribute<System.Runtime.CompilerServices.CompilerGeneratedAttribute>())
                 {
                     continue;
                 }
 
-                yield return getEnumMember(fieldInfo, typeNameResolver);
+                bool isObsolete = type.IsDeprecated(out string reason);
+                if (isObsolete && typeNameResolver.TypeConfiguration.IncludeObsolete == false)
+                {
+                    continue;
+                }
+
+                var enumMemberDeclaration = getEnumMember(fieldInfo, typeNameResolver);
+
+                if (isObsolete)
+                {
+                    enumMemberDeclaration = enumMemberDeclaration
+                        .AddAttributeLists(
+                            createObsoleteAttribute(typeNameResolver, reason)
+                        );
+                }
+
+                yield return enumMemberDeclaration;
             }
         }
 
@@ -242,8 +311,6 @@ namespace Potter.ApiExtraction.Core.Generation
         {
             return EnumMemberDeclaration(fieldInfo.Name);
         }
-
-        private static readonly Type _compilerGeneratedType = typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute);
 
         private IEnumerable<(MemberDeclarationSyntax member, InterfaceRole role)> getMembers(Type type, TypeNameResolver typeNameResolver)
         {
@@ -257,7 +324,14 @@ namespace Potter.ApiExtraction.Core.Generation
 
             foreach (MemberInfo memberInfo in type.GetMembers(AllPublicMembers))
             {
-                if (isCompilerGenerated(memberInfo))
+                if (memberInfo.HasAttribute<System.Runtime.CompilerServices.CompilerGeneratedAttribute>())
+                {
+                    continue;
+                }
+
+                bool isObsolete = memberInfo.IsDeprecated(out string reason);
+
+                if (isObsolete && typeNameResolver.TypeConfiguration.IncludeObsolete == false)
                 {
                     continue;
                 }
@@ -268,9 +342,17 @@ namespace Potter.ApiExtraction.Core.Generation
                     case MemberTypes.Constructor:
                         var constructorInfo = (ConstructorInfo) memberInfo;
 
-                        MethodDeclarationSyntax constructoMethodDeclaration = getConstructorMethod(constructorInfo, typeNameResolver);
+                        MethodDeclarationSyntax constructorMethodDeclaration = getConstructorMethod(constructorInfo, typeNameResolver);
 
-                        yield return (constructoMethodDeclaration, InterfaceRole.Factory);
+                        if (isObsolete)
+                        {
+                            constructorMethodDeclaration = constructorMethodDeclaration
+                                .AddAttributeLists(
+                                    createObsoleteAttribute(typeNameResolver, reason)
+                                );
+                        }
+
+                        yield return (constructorMethodDeclaration, InterfaceRole.Factory);
                         break;
 
                     case MemberTypes.Event:
@@ -283,6 +365,14 @@ namespace Potter.ApiExtraction.Core.Generation
                         }
 
                         EventFieldDeclarationSyntax eventDeclaration = getEvent(eventInfo, typeNameResolver);
+
+                        if (isObsolete)
+                        {
+                            eventDeclaration = eventDeclaration
+                                .AddAttributeLists(
+                                    createObsoleteAttribute(typeNameResolver, reason)
+                                );
+                        }
 
                         if (extensionKind == MemberExtensionKind.New)
                         {
@@ -313,6 +403,14 @@ namespace Potter.ApiExtraction.Core.Generation
 
                         MethodDeclarationSyntax methodDeclaration = getMethod(methodInfo, typeNameResolver);
 
+                        if (isObsolete)
+                        {
+                            methodDeclaration = methodDeclaration
+                                .AddAttributeLists(
+                                    createObsoleteAttribute(typeNameResolver, reason)
+                                );
+                        }
+
                         if (extensionKind == MemberExtensionKind.New)
                         {
                             methodDeclaration = methodDeclaration
@@ -335,6 +433,14 @@ namespace Potter.ApiExtraction.Core.Generation
                         {
                             IndexerDeclarationSyntax indexerDeclaration = getIndexer(propertyInfo, typeNameResolver);
 
+                            if (isObsolete)
+                            {
+                                indexerDeclaration = indexerDeclaration
+                                    .AddAttributeLists(
+                                        createObsoleteAttribute(typeNameResolver, reason)
+                                    );
+                            }
+
                             if (extensionKind == MemberExtensionKind.New)
                             {
                                 indexerDeclaration = indexerDeclaration
@@ -347,6 +453,14 @@ namespace Potter.ApiExtraction.Core.Generation
                         else
                         {
                             PropertyDeclarationSyntax propertyDeclaration = getProperty(propertyInfo, typeNameResolver);
+
+                            if (isObsolete)
+                            {
+                                propertyDeclaration = propertyDeclaration
+                                    .AddAttributeLists(
+                                        createObsoleteAttribute(typeNameResolver, reason)
+                                    );
+                            }
 
                             if (extensionKind == MemberExtensionKind.New)
                             {
@@ -367,21 +481,6 @@ namespace Potter.ApiExtraction.Core.Generation
                         break;
                 }
             }
-        }
-
-        private static bool isCompilerGenerated(MemberInfo memberInfo)
-        {
-            bool isCompilerGenerated;
-            if (memberInfo.DeclaringType.Assembly.ReflectionOnly)
-            {
-                isCompilerGenerated = memberInfo.GetCustomAttributesData().Any(attribute => _compilerGeneratedType.IsEquivalentTo(attribute.AttributeType));
-            }
-            else
-            {
-                isCompilerGenerated = memberInfo.GetCustomAttribute(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute)) != null;
-            }
-
-            return isCompilerGenerated;
         }
 
         private MethodDeclarationSyntax getDefaultConstructorMethod(Type type, TypeNameResolver typeNameResolver)
@@ -764,6 +863,91 @@ namespace Potter.ApiExtraction.Core.Generation
             }
 
             return MemberExtensionKind.Normal;
+        }
+
+        public static bool IsDeprecated(this MemberInfo memberInfo, out string reason)
+        {
+            string innerReason = null;
+
+            bool isDeprecated = HasAttribute(memberInfo, hasAttributeTest);
+
+            reason = innerReason;
+
+            return isDeprecated;
+
+            bool hasAttributeTest(CustomAttributeData attributeData)
+            {
+                if (typeof(ObsoleteAttribute).IsEquivalentTo(attributeData.AttributeType)
+                    || attributeData.AttributeType.FullName == "Windows.Foundation.Metadata.DeprecatedAttribute")
+                {
+                    if (attributeData.ConstructorArguments?.Count > 0)
+                    {
+                        innerReason = attributeData.ConstructorArguments[0].Value?.ToString();
+                    }
+
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public static bool HasAttribute<T>(this MemberInfo memberInfo)
+            where T : Attribute
+        {
+            Type attributeType = typeof(T);
+
+            Type declaringType = memberInfo as Type ?? memberInfo.DeclaringType;
+            bool isReflectionOnly = declaringType.Assembly.ReflectionOnly;
+
+            return hasAttribute(memberInfo, hasAttributeTest);
+
+            bool hasAttributeTest(MemberInfo innerMemberInfo)
+            {
+                if (isReflectionOnly)
+                {
+                    IList<CustomAttributeData> customAttributes = innerMemberInfo.GetCustomAttributesData();
+
+                    return customAttributes.Any(attribute => attributeType.IsEquivalentTo(attribute.AttributeType));
+                }
+                else
+                {
+                    return innerMemberInfo.GetCustomAttribute(attributeType) != null;
+                }
+            }
+        }
+
+        public static bool HasAttribute(this MemberInfo memberInfo, Func<CustomAttributeData, bool> attributeTest)
+        {
+            return hasAttribute(memberInfo, hasAttributeTest);
+
+            bool hasAttributeTest(MemberInfo innerMemberInfo)
+            {
+                IList<CustomAttributeData> customAttributes = innerMemberInfo.GetCustomAttributesData();
+
+                return customAttributes.Any(attributeTest);
+            }
+        }
+
+        private static bool hasAttribute(MemberInfo memberInfo, Func<MemberInfo, bool> attributeTest)
+        {
+            if (attributeTest(memberInfo))
+            {
+                return true;
+            }
+
+            switch (memberInfo.MemberType)
+            {
+                case MemberTypes.Event:
+                    EventInfo eventInfo = (EventInfo) memberInfo;
+                    return attributeTest(eventInfo.AddMethod) || attributeTest(eventInfo.RemoveMethod);
+
+                case MemberTypes.Property:
+                    return ((PropertyInfo) memberInfo).GetAccessors().Any(attributeTest);
+
+                default:
+                    return false;
+            }
         }
     }
 

@@ -153,6 +153,30 @@ namespace Potter.ApiExtraction.Core.Generation
         /// </returns>
         public TypeSyntax ResolveTypeName(Type type, bool includeTypeArguments = true, bool registerNamespace = true)
         {
+            return resolveTypeName(type, includeTypeArguments, registerNamespace);
+        }
+
+        /// <summary>
+        ///     Resolves the type name for an attribute definition.
+        /// </summary>
+        /// <param name="type">
+        ///     The type of attribute.
+        /// </param>
+        /// <returns>
+        ///     The name of the attribute type without the "Attribute" suffix.
+        /// </returns>
+        public NameSyntax ResolveAttributeTypeName(Type type)
+        {
+            return IdentifierName(
+                resolveTypeName(type,
+                    includeTypeArguments: false,
+                    registerNamespace: true,
+                    isAttributeDefinition: true).ToString()
+            );
+        }
+
+        private TypeSyntax resolveTypeName(Type type, bool includeTypeArguments, bool registerNamespace, bool isAttributeDefinition = false)
+        {
             if (type.IsGenericParameter)
             {
                 return IdentifierName(type.Name);
@@ -178,6 +202,11 @@ namespace Potter.ApiExtraction.Core.Generation
             }
 
             string typeName = getBaseTypeName(type);
+
+            if (isAttributeDefinition && type.IsSubclassOf(typeof(Attribute)) && typeName.EndsWith(nameof(Attribute)))
+            {
+                typeName = typeName.Remove(typeName.Length - nameof(Attribute).Length);
+            }
 
             SimpleNameSyntax typeNameSyntax;
             if (includeTypeArguments && type.IsGenericType)
