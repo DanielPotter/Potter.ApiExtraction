@@ -276,21 +276,20 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private TypeResolution resolveType(TypeResolutionArgs args)
         {
-            SyntaxToken baseName;
-            TypeSyntax fullName;
-
-            if (IsApiType(args.Type))
-            {
-                baseName = resolveBaseApiTypeToken(args.Type, args.TypeRole);
-            }
-            else
-            {
-                baseName = resolveBaseTypeToken(args.Type, args.IsAttributeDefinition);
-            }
-
-            fullName = resolveTypeName(args.Type, baseName);
+            SyntaxToken baseName = resolveBaseToken(args.Type, args.TypeRole, args.IsAttributeDefinition);
+            TypeSyntax fullName = resolveTypeName(args.Type, baseName);
 
             return new TypeResolution(baseName, fullName);
+
+            SyntaxToken resolveBaseToken(Type type, TypeRole typeRole = TypeRole.Instance, bool isAttributeDefinition = false)
+            {
+                if (IsApiType(type))
+                {
+                    return resolveBaseApiTypeToken(type, typeRole);
+                }
+
+                return resolveBaseTypeToken(type, isAttributeDefinition);
+            }
 
             SyntaxToken resolveBaseApiTypeToken(Type type, TypeRole role)
             {
@@ -367,7 +366,7 @@ namespace Potter.ApiExtraction.Core.Generation
 
             TypeSyntax resolveTypeName(Type type, SyntaxToken? baseTypeName = null)
             {
-                var typeName = baseTypeName ?? resolveBaseTypeToken(type);
+                var typeName = baseTypeName ?? resolveBaseToken(type);
 
                 // Check if it is a predefined type.
                 if (typeName.IsKeyword())
