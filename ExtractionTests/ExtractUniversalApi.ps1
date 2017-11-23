@@ -1,14 +1,14 @@
-Write-Verbose "Building module" -Verbose
+Write-Verbose "Build module" -Verbose
 . "$PSScriptRoot\..\Potter.ApiExtraction.PowerShell\Build.ps1"
 
-Write-Verbose "Importing module" -Verbose
+Write-Verbose "Import module" -Verbose
 Import-Module "$PSScriptRoot\..\Potter.ApiExtraction.PowerShell" -Verbose
 
-Write-Verbose "Reading assembly" -Verbose
-$files = Read-AssemblyApi "$PSScriptRoot\UniversalApiContract.xml" -Verbose
+Write-Verbose "Read assembly" -Verbose
+$files = Read-AssemblyApi -Path "$PSScriptRoot\UniversalApiContract.xml" -Verbose
 
-Write-Verbose "Write interfaces" -Verbose
-$files | Write-CompilationUnit -Destination "$PSScriptRoot\bin" -Verbose
+Write-Verbose "Write types" -Verbose
+$files | Write-SourceFile -Destination "$PSScriptRoot\bin" -Verbose
 
 if ($Error)
 {

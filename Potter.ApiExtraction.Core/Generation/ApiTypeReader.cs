@@ -48,6 +48,15 @@ namespace Potter.ApiExtraction.Core.Generation
 
             var typeNameResolver = new TypeNameResolver(configuration ?? new ApiConfiguration());
 
+            //if (System.Diagnostics.Debugger.IsAttached)
+            //{
+            //    System.Diagnostics.Debugger.Break();
+            //}
+            //else
+            //{
+            //    System.Diagnostics.Debugger.Launch();
+            //}
+
             Console.WriteLine($"Reading assembly: {assembly.FullName} ({assembly.Location})");
 
             foreach (Type type in assembly.ExportedTypes)
