@@ -96,9 +96,9 @@ namespace Potter.ApiExtraction.Core.Generation
         {
             NamespaceDeclarationSyntax namespaceDeclaration = readNamespace(type, typeNameResolver);
             IEnumerable<UsingDirectiveSyntax> usings = typeNameResolver.GetRegisteredNamespaces()
-                .Where(qualifiedNamespace => qualifiedNamespace != type.Namespace)
-                .OrderBy(qualifiedNamespace => qualifiedNamespace)
-                .Select(qualifiedNamespace => UsingDirective(ParseName(qualifiedNamespace)));
+                .Where(qualifiedNamespace => qualifiedNamespace.ToString() != type.Namespace)
+                .OrderBy(qualifiedNamespace => qualifiedNamespace.ToString())
+                .Select(qualifiedNamespace => UsingDirective(qualifiedNamespace));
 
             var compilationUnit = CompilationUnit()
                 .WithMembers(SingletonList<MemberDeclarationSyntax>(namespaceDeclaration));
@@ -179,7 +179,13 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private InterfaceDeclarationSyntax createInterface(Type type, IEnumerable<MemberDeclarationSyntax> members, TypeNameResolver typeNameResolver, TypeRole role)
         {
-            var interfaceDeclaration = InterfaceDeclaration(typeNameResolver.GetApiTypeIdentifier(type, role))
+            if (typeNameResolver.TryGetApiTypeIdentifier(type, role, out SyntaxToken identifier) == false)
+            {
+                System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier a type that should not generate. Type: {type}");
+                return null;
+            }
+
+            var interfaceDeclaration = InterfaceDeclaration(identifier)
                 .WithBaseList(role == TypeRole.Instance ? getBaseList(type, typeNameResolver) : null)
                 .WithMembers(List(members))
                 .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
@@ -234,7 +240,13 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private EnumDeclarationSyntax createEnum(Type type, TypeNameResolver typeNameResolver)
         {
-            var enumDeclaration = EnumDeclaration(typeNameResolver.GetApiTypeIdentifier(type, TypeRole.Instance))
+            if (typeNameResolver.TryGetApiTypeIdentifier(type, TypeRole.Instance, out SyntaxToken identifier) == false)
+            {
+                System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier a type that should not generate. Type: {type}");
+                return null;
+            }
+
+            var enumDeclaration = EnumDeclaration(identifier)
                 .WithMembers(SeparatedList(getEnumMembers(type, typeNameResolver)))
                 .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
 
@@ -479,7 +491,7 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private MethodDeclarationSyntax getDefaultConstructorMethod(Type type, TypeNameResolver typeNameResolver)
         {
-            TypeSyntax returnTypeSyntax = typeNameResolver.GetApiTypeIdentifierName(type, TypeRole.Instance);
+            TypeSyntax returnTypeSyntax = typeNameResolver.ResolveTypeName(type);
             string baseName = getBaseTypeNameWithoutPrefix(type, typeNameResolver);
 
             MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + baseName))
@@ -490,7 +502,7 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private MethodDeclarationSyntax getConstructorMethod(ConstructorInfo constructorInfo, TypeNameResolver typeNameResolver)
         {
-            TypeSyntax returnTypeSyntax = typeNameResolver.GetApiTypeIdentifierName(constructorInfo.DeclaringType, TypeRole.Instance);
+            TypeSyntax returnTypeSyntax = typeNameResolver.ResolveTypeName(constructorInfo.DeclaringType);
             string baseName = getBaseTypeNameWithoutPrefix(constructorInfo.DeclaringType, typeNameResolver);
 
             MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + baseName))
@@ -502,7 +514,13 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private static string getBaseTypeNameWithoutPrefix(Type type, TypeNameResolver typeNameResolver)
         {
-            string baseName = typeNameResolver.GetApiTypeIdentifier(type, TypeRole.Instance).Text;
+            if (typeNameResolver.TryGetApiTypeIdentifier(type, TypeRole.Instance, out SyntaxToken identifier) == false)
+            {
+                System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier a type that should not generate. Type: {type}");
+                return string.Empty;
+            }
+
+            string baseName = identifier.Text;
 
             if ((type.IsClass || type.IsInterface || type.IsSealed)
                 && baseName.Length > 1 && baseName[0] == 'I' && char.IsUpper(baseName[1]))
@@ -739,12 +757,11 @@ namespace Potter.ApiExtraction.Core.Generation
 
         private IEnumerable<BaseTypeSyntax> getBaseTypes(Type type, TypeNameResolver typeNameResolver)
         {
-
             if (type.BaseType != null
                 && _ignoredBaseTypes.Contains(type.BaseType) == false
                 && type.BaseType.FullName != "System.Runtime.InteropServices.WindowsRuntime.RuntimeClass")
             {
-                yield return SimpleBaseType(typeNameResolver.GetApiTypeIdentifierName(type.BaseType, TypeRole.Instance));
+                yield return SimpleBaseType(typeNameResolver.ResolveTypeName(type.BaseType));
             }
 
             foreach (var implementedInterface in type.GetInterfaces())
@@ -754,7 +771,7 @@ namespace Potter.ApiExtraction.Core.Generation
                     continue;
                 }
 
-                yield return SimpleBaseType(typeNameResolver.GetApiTypeIdentifierName(implementedInterface, TypeRole.Instance));
+                yield return SimpleBaseType(typeNameResolver.ResolveTypeName(implementedInterface));
             }
         }
 

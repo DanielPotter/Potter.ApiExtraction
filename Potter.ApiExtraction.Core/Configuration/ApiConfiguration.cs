@@ -96,6 +96,8 @@ namespace Potter.ApiExtraction.Core.Configuration {
         
         private string nameField;
         
+        private string newNameField;
+        
         /// <remarks/>
         [System.Xml.Serialization.XmlAttributeAttribute()]
         public string Name {
@@ -104,6 +106,17 @@ namespace Potter.ApiExtraction.Core.Configuration {
             }
             set {
                 this.nameField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public string NewName {
+            get {
+                return this.newNameField;
+            }
+            set {
+                this.newNameField = value;
             }
         }
     }
@@ -142,6 +155,32 @@ namespace Potter.ApiExtraction.Core.Configuration {
     [System.ComponentModel.DesignerCategoryAttribute("code")]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://schemas.danielrpotter.com/api/configuration/2017")]
     public partial class TypeSelector : MemberSelector {
+        
+        private string factoryNameField;
+        
+        private string managerNameField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public string FactoryName {
+            get {
+                return this.factoryNameField;
+            }
+            set {
+                this.factoryNameField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public string ManagerName {
+            get {
+                return this.managerNameField;
+            }
+            set {
+                this.managerNameField = value;
+            }
+        }
     }
     
     /// <remarks/>

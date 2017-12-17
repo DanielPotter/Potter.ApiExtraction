@@ -73,6 +73,11 @@
         <xs:documentation>The namespace name or namespace qualified type name.</xs:documentation>
       </xs:annotation>
     </xs:attribute>
+    <xs:attribute name="NewName" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>The namespace name, namespace qualified type name, or simple type name to assign for the generated type.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
   </xs:complexType>
 
   <xs:complexType name="TypeSelector">
@@ -83,6 +88,16 @@
             Describes how types should be selected.
           </xs:documentation>
         </xs:annotation>
+        <xs:attribute name="FactoryName" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation>The namespace name, namespace qualified type name, or simple type name to assign for the generated factory interface.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="ManagerName" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation>The namespace name, namespace qualified type name, or simple type name to assign for the generated manager interface.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
