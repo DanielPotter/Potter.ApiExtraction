@@ -518,7 +518,7 @@ namespace Potter.ApiExtraction.Core.Generation
                 }
 
                 // Handle type transformations.
-                string qualifiedBaseTypeNameWithArity = $"{type.Namespace}.{baseName}";
+                string qualifiedBaseTypeNameWithArity = $"{type.Namespace}.{type.Name}";
 
                 if (_externalTypeTransformations.TryGetValue(qualifiedBaseTypeNameWithArity, out Type transformType))
                 {
