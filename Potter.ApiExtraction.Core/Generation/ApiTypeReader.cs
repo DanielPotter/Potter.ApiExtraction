@@ -126,7 +126,9 @@ namespace Potter.ApiExtraction.Core.Generation
                 typeDeclarations = List<MemberDeclarationSyntax>(readInterface(type, typeNameResolver));
             }
 
-            return NamespaceDeclaration(IdentifierName(type.Namespace))
+            var typeResolution = typeNameResolver.ResolveType(type);
+
+            return NamespaceDeclaration(typeResolution.NamespaceName)
                 .WithMembers(typeDeclarations);
         }
 

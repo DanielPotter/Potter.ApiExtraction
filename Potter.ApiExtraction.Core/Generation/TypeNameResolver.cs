@@ -228,6 +228,20 @@ namespace Potter.ApiExtraction.Core.Generation
         };
 
         /// <summary>
+        ///     Resolve the type names for a type reference.
+        /// </summary>
+        /// <param name="type">
+        ///     The type for which to resolve.
+        /// </param>
+        /// <returns>
+        ///     The resolved type names for the type reference.
+        /// </returns>
+        public TypeResolution ResolveType(Type type)
+        {
+            return resolveTypeWithCaching(type);
+        }
+
+        /// <summary>
         ///     Resolves the type name for a type reference.
         /// </summary>
         /// <param name="type">
@@ -348,9 +362,7 @@ namespace Potter.ApiExtraction.Core.Generation
             void resolveConfiguredName()
             {
                 // Provide the default namespace name.
-                // TODO: Allow configurable qualified type name transformations. (Daniel Potter
-                //       12/13/2017)
-                mutableTypeResolution.NamespaceName = IdentifierName(type.Namespace);
+                mutableTypeResolution.NamespaceName = ParseName(type.Namespace);
 
                 if (configuredAssembly == null || type.Assembly.FullName != configuredAssembly.FullName)
                 {
@@ -402,10 +414,22 @@ namespace Potter.ApiExtraction.Core.Generation
                             if (string.Equals(type.Namespace, selector.Name))
                             {
                                 mutableTypeResolution.ShouldGenerate = shouldGenerateMatches;
+
+                                if (string.IsNullOrEmpty(namespaceSelector.NewName) == false)
+                                {
+                                    mutableTypeResolution.NamespaceName = ParseName(namespaceSelector.NewName);
+                                }
                             }
                             else if (namespaceSelector.Recursive && type.Namespace.StartsWith(selector.Name + "."))
                             {
                                 mutableTypeResolution.ShouldGenerate = shouldGenerateMatches;
+
+                                if (string.IsNullOrEmpty(namespaceSelector.NewName) == false)
+                                {
+                                    string namespaceName = $"{namespaceSelector.NewName}.{type.Namespace.Remove(selector.Name.Length + 1)}";
+
+                                    mutableTypeResolution.NamespaceName = ParseName(namespaceName);
+                                }
                             }
                             break;
                     }

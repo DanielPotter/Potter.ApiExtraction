@@ -92,7 +92,9 @@ function Write-SourceFile
                 New-Item -Path $Destination -ItemType Directory | Out-Null
             }
 
-            Set-Content -Value $SourceCode -Path (Join-Path -Path $Destination -ChildPath "$Name.cs")
+            $destinationPath = Join-Path -Path $Destination -ChildPath "$Name.cs"
+            Write-Verbose -Message "Writing file: $destinationPath"
+            Set-Content -Value $SourceCode -Path $destinationPath
         }
     }
 }

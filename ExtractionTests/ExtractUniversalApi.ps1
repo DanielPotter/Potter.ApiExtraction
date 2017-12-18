@@ -8,7 +8,7 @@ Write-Verbose "Read assembly" -Verbose
 $files = Read-AssemblyApi -Path "$PSScriptRoot\UniversalApiContract.xml" -Verbose
 
 Write-Verbose "Write types" -Verbose
-$files | Write-SourceFile -Destination "$PSScriptRoot\bin" -Verbose
+$files | Write-SourceFile -Destination "$PSScriptRoot\UnifiedDeviceApi\Potter.Unified.Devices.Geolocation" -Verbose
 
 if ($Error)
 {
