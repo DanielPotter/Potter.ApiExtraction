@@ -71,6 +71,8 @@ namespace Potter.ApiExtraction.Core.Generation
                     continue;
                 }
 
+                typeNameResolver.ClearRegisteredNamespaces();
+
                 yield return ReadCompilationUnit(type, typeNameResolver);
             }
         }
@@ -95,8 +97,10 @@ namespace Potter.ApiExtraction.Core.Generation
         public CompilationUnitSyntax ReadCompilationUnit(Type type, TypeNameResolver typeNameResolver = null)
         {
             NamespaceDeclarationSyntax namespaceDeclaration = readNamespace(type, typeNameResolver);
+
+            string currentNamespace = namespaceDeclaration.Name.ToString();
             IEnumerable<UsingDirectiveSyntax> usings = typeNameResolver.GetRegisteredNamespaces()
-                .Where(qualifiedNamespace => qualifiedNamespace.ToString() != type.Namespace)
+                .Where(qualifiedNamespace => qualifiedNamespace.ToString() != currentNamespace)
                 .OrderBy(qualifiedNamespace => qualifiedNamespace.ToString())
                 .Select(qualifiedNamespace => UsingDirective(qualifiedNamespace));
 

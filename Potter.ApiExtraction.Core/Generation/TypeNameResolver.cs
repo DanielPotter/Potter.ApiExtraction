@@ -101,6 +101,7 @@ namespace Potter.ApiExtraction.Core.Generation
                 list = _referencedNamespaces[namespaceName] = new HashSet<Type>();
             }
 
+            System.Console.WriteLine($"Register namespace: {namespaceName} for type: {type.FullName}");
             list.Add(type);
         }
 
@@ -294,6 +295,7 @@ namespace Potter.ApiExtraction.Core.Generation
         {
             public TypeSyntax TypeSyntax;
             public NameSyntax NamespaceName;
+            public bool ShouldRegisterNamespace;
             public bool ShouldGenerate;
             public SyntaxToken InstanceIdentifier;
             public SyntaxToken FactoryIdentifier;
@@ -311,13 +313,19 @@ namespace Potter.ApiExtraction.Core.Generation
 
             if (_typeCache.TryGetValue(args, out TypeResolution typeResolution) == false)
             {
-                _typeCache[args] = typeResolution = resolveType(args, registerNamespace);
+                _typeCache[args] = typeResolution = resolveType(args);
+            }
+
+            if (registerNamespace && typeResolution.HasRegisteredNamespace)
+            {
+                // Ensure that the namespace is actually registered.
+                registerNamespaceForType(typeResolution.NamespaceName, type);
             }
 
             return typeResolution;
         }
 
-        private TypeResolution resolveType(TypeResolutionArgs args, bool registerNamespace)
+        private TypeResolution resolveType(TypeResolutionArgs args)
         {
             // Determine whether the type has configuration. If it does not, simply return the type
             // syntax.
@@ -331,7 +339,7 @@ namespace Potter.ApiExtraction.Core.Generation
 
             if (type.IsGenericParameter)
             {
-                return new TypeResolution(IdentifierName(type.Name), null);
+                return new TypeResolution(IdentifierName(type.Name), null, hasRegisteredNamespace: false);
             }
 
             AssemblyName configuredAssembly;
@@ -469,6 +477,7 @@ namespace Potter.ApiExtraction.Core.Generation
             }
 
             // Resolve type syntax.
+            mutableTypeResolution.ShouldRegisterNamespace = false;
             mutableTypeResolution.TypeSyntax = resolveTypeSyntax();
             TypeSyntax resolveTypeSyntax()
             {
@@ -554,10 +563,7 @@ namespace Potter.ApiExtraction.Core.Generation
                     );
                 }
 
-                if (registerNamespace)
-                {
-                    registerNamespaceForType(mutableTypeResolution.NamespaceName, type);
-                }
+                mutableTypeResolution.ShouldRegisterNamespace = true;
 
                 return typeNameSyntax;
             }
@@ -568,6 +574,7 @@ namespace Potter.ApiExtraction.Core.Generation
                 instanceIdentifier: mutableTypeResolution.InstanceIdentifier,
                 factoryIdentifier: mutableTypeResolution.FactoryIdentifier,
                 managerIdentifier: mutableTypeResolution.ManagerIdentifier,
+                hasRegisteredNamespace: mutableTypeResolution.ShouldRegisterNamespace,
                 shouldGenerate: mutableTypeResolution.ShouldGenerate);
         }
 

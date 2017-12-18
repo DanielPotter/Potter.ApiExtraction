@@ -17,11 +17,24 @@ namespace Potter.ApiExtraction.Core.Generation
         /// <param name="namespaceName">
         ///     The namespace qualification of the type.
         /// </param>
+        /// <param name="hasRegisteredNamespace">
+        ///     A value indicating whether <paramref name="namespaceName"/> has been registered.
+        /// </param>
         /// <param name="shouldGenerate">
         ///     A value indicating whether a file should be generated for this type.
         /// </param>
-        public TypeResolution(TypeSyntax typeSyntax, NameSyntax namespaceName, bool shouldGenerate = false)
-            : this(typeSyntax, namespaceName, default(SyntaxToken), default(SyntaxToken), default(SyntaxToken), shouldGenerate: shouldGenerate)
+        public TypeResolution(
+            TypeSyntax typeSyntax,
+            NameSyntax namespaceName,
+            bool hasRegisteredNamespace,
+            bool shouldGenerate = false)
+            : this(typeSyntax,
+                  namespaceName,
+                  default(SyntaxToken),
+                  default(SyntaxToken),
+                  default(SyntaxToken),
+                  hasRegisteredNamespace: hasRegisteredNamespace,
+                  shouldGenerate: shouldGenerate)
         {
         }
 
@@ -43,6 +56,9 @@ namespace Potter.ApiExtraction.Core.Generation
         /// <param name="managerIdentifier">
         ///     The name of the resolved type without generic parameters when used as a manager.
         /// </param>
+        /// <param name="hasRegisteredNamespace">
+        ///     A value indicating whether <paramref name="namespaceName"/> has been registered.
+        /// </param>
         /// <param name="shouldGenerate">
         ///     A value indicating whether a file should be generated for this type.
         /// </param>
@@ -52,10 +68,12 @@ namespace Potter.ApiExtraction.Core.Generation
             SyntaxToken instanceIdentifier,
             SyntaxToken factoryIdentifier,
             SyntaxToken managerIdentifier,
+            bool hasRegisteredNamespace,
             bool shouldGenerate = true)
         {
             TypeSyntax = typeSyntax;
             NamespaceName = namespaceName;
+            HasRegisteredNamespace = hasRegisteredNamespace;
             ShouldGenerate = shouldGenerate;
             InstanceIdentifier = instanceIdentifier;
             FactoryIdentifier = factoryIdentifier;
@@ -71,6 +89,11 @@ namespace Potter.ApiExtraction.Core.Generation
         ///     Gets the namespace qualification of the type.
         /// </summary>
         public NameSyntax NamespaceName { get; }
+
+        /// <summary>
+        ///     Gets a value indicating whether <see cref="NamespaceName"/> has been registered.
+        /// </summary>
+        public bool HasRegisteredNamespace { get; }
 
         /// <summary>
         ///     Gets or sets a value indicating whether a file should be generated for this type.
