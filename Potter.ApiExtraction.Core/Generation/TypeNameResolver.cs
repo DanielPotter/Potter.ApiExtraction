@@ -53,7 +53,20 @@ namespace Potter.ApiExtraction.Core.Generation
 
         #region Namespaces
 
-        private readonly Dictionary<NameSyntax, HashSet<Type>> _referencedNamespaces = new Dictionary<NameSyntax, HashSet<Type>>();
+        private readonly Dictionary<NameSyntax, HashSet<Type>> _referencedNamespaces = new Dictionary<NameSyntax, HashSet<Type>>(new NameSyntaxEqualityComparer());
+
+        private class NameSyntaxEqualityComparer : EqualityComparer<NameSyntax>
+        {
+            public override bool Equals(NameSyntax x, NameSyntax y)
+            {
+                return string.Equals(x.ToString(), y.ToString());
+            }
+
+            public override int GetHashCode(NameSyntax obj)
+            {
+                return obj.ToString().GetHashCode();
+            }
+        }
 
         /// <summary>
         ///     Gets the registered namespaces.
