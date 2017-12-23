@@ -14,5 +14,13 @@ $global:LastError = $null
 if ($Error)
 {
     $global:LastError = $Error[0]
-    $Error[0].Exception | Format-List -Force
+
+    $LastError | Format-List -Force
+
+    $LastError.Exception | Format-List -Force
+
+    if ($LastError.Exception.InnerException)
+    {
+        $LastError.Exception.InnerException | Format-List -Force
+    }
 }

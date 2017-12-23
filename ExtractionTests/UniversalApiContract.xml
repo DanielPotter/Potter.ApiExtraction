@@ -1,5 +1,6 @@
 <Api xmlns="http://schemas.danielrpotter.com/api/configuration/2017">
   <Assemblies>
+    <Assembly Name="Windows.Foundation, Version=255.255.255.255, Culture=neutral, PublicKeyToken=null, ContentType=WindowsRuntime" Load="false" />
     <Assembly Name="Windows.Foundation.FoundationContract, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null, ContentType=WindowsRuntime" />
     <Assembly Name="Windows.Foundation.UniversalApiContract, Version=5.0.0.0, Culture=neutral, PublicKeyToken=null, ContentType=WindowsRuntime" />
   </Assemblies>

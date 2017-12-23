@@ -59,6 +59,11 @@
         <xs:documentation>The assembly full path name.</xs:documentation>
       </xs:annotation>
     </xs:attribute>
+    <xs:attribute name="Load" type="xs:boolean" use="optional" default="true">
+      <xs:annotation>
+        <xs:documentation>Specifies to load the assembly.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
   </xs:complexType>
 
   <xs:complexType name="NameConfiguration">

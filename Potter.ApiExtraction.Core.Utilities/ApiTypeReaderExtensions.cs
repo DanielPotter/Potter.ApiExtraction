@@ -67,6 +67,11 @@ namespace Potter.ApiExtraction.Core.Utilities
 
             foreach (var assemblyConfiguration in configuration.Assemblies)
             {
+                if (assemblyConfiguration.Load == false)
+                {
+                    continue;
+                }
+
                 string assemblyLocation = assemblyConfiguration.Location;
 
                 Assembly assembly;

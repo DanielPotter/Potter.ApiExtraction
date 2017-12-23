@@ -27,6 +27,8 @@ namespace Potter.ApiExtraction.Core.Generation
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
             _configuredAssemblies = new Lazy<HashSet<string>>(initializeAssemblyNames);
+            _namespaceNameSelectors = new Lazy<Dictionary<string, NamespaceSelector>>(initializeNamespaceNameSelectors);
+            _typeNameSelectors = new Lazy<Dictionary<string, TypeSelector>>(initializeTypeNameSelectors);
 
             HashSet<string> initializeAssemblyNames()
             {
@@ -46,11 +48,47 @@ namespace Potter.ApiExtraction.Core.Generation
 
                 return assemblyNames;
             }
+
+            Dictionary<string, NamespaceSelector> initializeNamespaceNameSelectors()
+            {
+                var selectors = new Dictionary<string, NamespaceSelector>();
+
+                foreach (var selector in configuration.Names.Items)
+                {
+                    switch (selector)
+                    {
+                        case NamespaceSelector namespaceSelector:
+                            selectors[namespaceSelector.Name] = namespaceSelector;
+                            break;
+                    }
+                }
+
+                return selectors;
+            }
+
+            Dictionary<string, TypeSelector> initializeTypeNameSelectors()
+            {
+                var selectors = new Dictionary<string, TypeSelector>();
+
+                foreach (var selector in configuration.Names.Items)
+                {
+                    switch (selector)
+                    {
+                        case TypeSelector typeSelector:
+                            selectors[typeSelector.Name] = typeSelector;
+                            break;
+                    }
+                }
+
+                return selectors;
+            }
         }
 
         #region Configuration
 
         private readonly Lazy<HashSet<string>> _configuredAssemblies;
+        private readonly Lazy<Dictionary<string, NamespaceSelector>> _namespaceNameSelectors;
+        private readonly Lazy<Dictionary<string, TypeSelector>> _typeNameSelectors;
 
         /// <summary>
         ///     Gets the type configuration specifying how names should resolve.
@@ -400,6 +438,53 @@ namespace Potter.ApiExtraction.Core.Generation
                 if (Configuration.Groups == null)
                 {
                     return;
+                }
+
+                // Check standalone names.
+                {
+                    if (_namespaceNameSelectors.Value.TryGetValue(type.Namespace, out NamespaceSelector namespaceSelector))
+                    {
+                        if (string.IsNullOrEmpty(namespaceSelector.NewName) == false)
+                        {
+                            mutableTypeResolution.NamespaceName = ParseName(namespaceSelector.NewName);
+                        }
+                    }
+                    else
+                    {
+                        // TODO: Simplify recursive namespace checking. Maybe extract this to a
+                        //       cache? (Daniel Potter, 12/23/2017)
+                        foreach (NamespaceSelector selector in _namespaceNameSelectors.Value.Values)
+                        {
+                            if (selector.Recursive && type.Namespace.StartsWith(selector.Name + "."))
+                            {
+                                if (string.IsNullOrEmpty(selector.NewName) == false)
+                                {
+                                    string namespaceName = $"{selector.NewName}.{type.Namespace.Remove(selector.Name.Length + 1)}";
+
+                                    mutableTypeResolution.NamespaceName = ParseName(namespaceName);
+                                }
+                            }
+                        }
+                    }
+
+                    if (_typeNameSelectors.Value.TryGetValue($"{type.Namespace}.{type.Name}", out TypeSelector typeSelector)
+                        || _typeNameSelectors.Value.TryGetValue(type.Name, out typeSelector))
+                    {
+                        if (string.IsNullOrEmpty(typeSelector.NewName) == false)
+                        {
+                            mutableTypeResolution.InstanceIdentifier = Identifier(typeSelector.NewName);
+                        }
+
+                        if (string.IsNullOrEmpty(typeSelector.FactoryName) == false)
+                        {
+                            mutableTypeResolution.FactoryIdentifier = Identifier(typeSelector.FactoryName);
+                        }
+
+                        if (string.IsNullOrEmpty(typeSelector.ManagerName) == false)
+                        {
+                            mutableTypeResolution.ManagerIdentifier = Identifier(typeSelector.ManagerName);
+                        }
+                    }
                 }
 
                 foreach (var groupConfiguration in Configuration.Groups)
