@@ -19,8 +19,6 @@ namespace Potter.ApiExtraction.Core.Generation
     /// </summary>
     public class ApiTypeReader
     {
-        private const BindingFlags AllPublicMembers = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Static;
-
         #region Assembly Reading
 
         /// <summary>
@@ -33,20 +31,16 @@ namespace Potter.ApiExtraction.Core.Generation
         ///     Specifies which and how types should be read.
         /// </param>
         /// <returns>
-        ///     A sequence of <see cref="CompilationUnitSyntax"/> objects representing interface source
-        ///     code.
+        ///     A sequence of <see cref="SourceFileInfo"/> objects representing type source code.
         /// </returns>
-        public IEnumerable<CompilationUnitSyntax> ReadAssembly(Assembly assembly, ApiConfiguration configuration = null)
+        public IEnumerable<SourceFileInfo> ReadAssembly(Assembly assembly, ApiConfiguration configuration = null)
         {
             if (configuration == null)
             {
-                configuration = new ApiConfiguration
-                {
-                    Types = new TypeConfiguration(),
-                };
+                configuration = ApiConfiguration.CreateDefault(assembly.GetName());
             }
 
-            var typeNameResolver = new TypeNameResolver(configuration ?? new ApiConfiguration());
+            var typeNameResolver = new TypeNameResolver(configuration);
 
             //if (System.Diagnostics.Debugger.IsAttached)
             //{
@@ -59,25 +53,84 @@ namespace Potter.ApiExtraction.Core.Generation
 
             Console.WriteLine($"Reading assembly: {assembly.FullName} ({assembly.Location})");
 
-            foreach (Type type in assembly.ExportedTypes)
+            foreach (var groupConfiguration in configuration.Groups)
             {
-                if (typeNameResolver.IsApiType(type) == false)
+                TypeConfiguration typeConfiguration = groupConfiguration.Types;
+
+                var compilationUnitGenerator = new CompilationUnitGenerator(typeNameResolver, typeConfiguration);
+
+                foreach (Type type in assembly.ExportedTypes)
                 {
-                    continue;
+                    var typeResolution = typeNameResolver.ResolveType(type);
+
+                    if (typeResolution.ShouldGenerate == false)
+                    {
+                        continue;
+                    }
+
+                    if (typeConfiguration.IncludeObsolete == false && type.IsDeprecated(out string reason))
+                    {
+                        continue;
+                    }
+
+                    typeNameResolver.ClearRegisteredNamespaces();
+
+                    CompilationUnitSyntax compilationUnit = compilationUnitGenerator.ReadCompilationUnit(type);
+
+                    yield return new SourceFileInfo(
+                        name: typeResolution.InstanceIdentifier.ValueText,
+                        namespaceName: typeResolution.NamespaceName.ToString(),
+                        group: groupConfiguration.Name,
+                        compilationUnit: compilationUnit);
                 }
-
-                if (configuration.Types.IncludeObsolete == false && type.IsDeprecated(out string reason))
-                {
-                    continue;
-                }
-
-                typeNameResolver.ClearRegisteredNamespaces();
-
-                yield return ReadCompilationUnit(type, typeNameResolver);
             }
         }
 
         #endregion
+
+        #region Helpers
+
+        /// <summary>
+        ///     Creates a new syntax node with all whitespace and end of line trivia replaced with
+        ///     regularly formatted trivia.
+        /// </summary>
+        /// <param name="node">
+        ///     The node to format.
+        /// </param>
+        public static SyntaxNode NormalizeWhitespace(SyntaxNode node)
+        {
+            // NOTE: This method is necessary because PowerShell has great difficulty calling
+            //       generic methods (like NormalizeWhitespace).
+            return SyntaxNodeExtensions.NormalizeWhitespace(node);
+        }
+
+        #endregion
+    }
+
+    /// <summary>
+    ///     Generates source code for a specified type.
+    /// </summary>
+    public class CompilationUnitGenerator
+    {
+        private const BindingFlags AllPublicMembers = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Static;
+
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="CompilationUnitGenerator"/> class.
+        /// </summary>
+        /// <param name="typeNameResolver">
+        ///     The name resolver for types.
+        /// </param>
+        /// <param name="typeConfiguration">
+        ///     The type configuration information.
+        /// </param>
+        public CompilationUnitGenerator(TypeNameResolver typeNameResolver, TypeConfiguration typeConfiguration)
+        {
+            _typeNameResolver = typeNameResolver;
+            _typeConfiguration = typeConfiguration;
+        }
+
+        private readonly TypeNameResolver _typeNameResolver;
+        private readonly TypeConfiguration _typeConfiguration;
 
         #region Type Reading
 
@@ -87,19 +140,16 @@ namespace Potter.ApiExtraction.Core.Generation
         /// <param name="type">
         ///     The type for which to generate.
         /// </param>
-        /// <param name="typeNameResolver">
-        ///     The name resolver for types.
-        /// </param>
         /// <returns>
         ///     A <see cref="CompilationUnitSyntax"/> object representing the source code for a
         ///     namespace with an interface.
         /// </returns>
-        public CompilationUnitSyntax ReadCompilationUnit(Type type, TypeNameResolver typeNameResolver = null)
+        public CompilationUnitSyntax ReadCompilationUnit(Type type)
         {
-            NamespaceDeclarationSyntax namespaceDeclaration = readNamespace(type, typeNameResolver);
+            NamespaceDeclarationSyntax namespaceDeclaration = readNamespace(type);
 
             string currentNamespace = namespaceDeclaration.Name.ToString();
-            IEnumerable<UsingDirectiveSyntax> usings = typeNameResolver.GetRegisteredNamespaces()
+            IEnumerable<UsingDirectiveSyntax> usings = _typeNameResolver.GetRegisteredNamespaces()
                 .Where(qualifiedNamespace => qualifiedNamespace.ToString() != currentNamespace)
                 .OrderBy(qualifiedNamespace => qualifiedNamespace.ToString())
                 .Select(qualifiedNamespace => UsingDirective(qualifiedNamespace));
@@ -113,34 +163,29 @@ namespace Potter.ApiExtraction.Core.Generation
             return compilationUnit;
         }
 
-        private NamespaceDeclarationSyntax readNamespace(Type type, TypeNameResolver typeNameResolver)
+        private NamespaceDeclarationSyntax readNamespace(Type type)
         {
-            if (typeNameResolver == null)
-            {
-                throw new ArgumentNullException(nameof(typeNameResolver));
-            }
-
             SyntaxList<MemberDeclarationSyntax> typeDeclarations;
             if (type.IsEnum)
             {
-                typeDeclarations = SingletonList<MemberDeclarationSyntax>(createEnum(type, typeNameResolver));
+                typeDeclarations = SingletonList<MemberDeclarationSyntax>(createEnum(type, _typeNameResolver));
             }
             else
             {
-                typeDeclarations = List<MemberDeclarationSyntax>(readInterface(type, typeNameResolver));
+                typeDeclarations = List<MemberDeclarationSyntax>(readInterface(type));
             }
 
-            var typeResolution = typeNameResolver.ResolveType(type);
+            var typeResolution = _typeNameResolver.ResolveType(type);
 
             return NamespaceDeclaration(typeResolution.NamespaceName)
                 .WithMembers(typeDeclarations);
         }
 
-        private IEnumerable<InterfaceDeclarationSyntax> readInterface(Type type, TypeNameResolver typeNameResolver)
+        private IEnumerable<InterfaceDeclarationSyntax> readInterface(Type type)
         {
             if (type.IsClass || type.IsInterface || type.IsValueType)
             {
-                var members = getMembers(type, typeNameResolver);
+                var members = getMembers(type);
 
                 var instanceMembers = new List<MemberDeclarationSyntax>();
                 var factoryMembers = new List<MemberDeclarationSyntax>();
@@ -168,38 +213,38 @@ namespace Potter.ApiExtraction.Core.Generation
 
                 if (isStatic == false)
                 {
-                    yield return createInterface(type, instanceMembers, typeNameResolver, TypeRole.Instance);
+                    yield return createInterface(type, instanceMembers, TypeRole.Instance);
 
                     if (factoryMembers.Count > 0)
                     {
-                        yield return createInterface(type, factoryMembers, typeNameResolver, TypeRole.Factory);
+                        yield return createInterface(type, factoryMembers, TypeRole.Factory);
                     }
                 }
 
                 if (isStatic || managerMembers.Count > 0)
                 {
-                    yield return createInterface(type, managerMembers, typeNameResolver, TypeRole.Manager);
+                    yield return createInterface(type, managerMembers, TypeRole.Manager);
                 }
             }
         }
 
-        private InterfaceDeclarationSyntax createInterface(Type type, IEnumerable<MemberDeclarationSyntax> members, TypeNameResolver typeNameResolver, TypeRole role)
+        private InterfaceDeclarationSyntax createInterface(Type type, IEnumerable<MemberDeclarationSyntax> members, TypeRole role)
         {
-            if (typeNameResolver.TryGetApiTypeIdentifier(type, role, out SyntaxToken identifier) == false)
+            if (_typeNameResolver.TryGetApiTypeIdentifier(type, role, out SyntaxToken identifier) == false)
             {
-                System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier a type that should not generate. Type: {type}");
+                System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier for a type that should not generate. Type: {type}");
                 return null;
             }
 
             var interfaceDeclaration = InterfaceDeclaration(identifier)
-                .WithBaseList(role == TypeRole.Instance ? getBaseList(type, typeNameResolver) : null)
+                .WithBaseList(role == TypeRole.Instance ? getBaseList(type) : null)
                 .WithMembers(List(members))
                 .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
 
             if (type.IsGenericType)
             {
                 interfaceDeclaration = interfaceDeclaration
-                    .WithConstraintClauses(List(getTypeConstraints(type, typeNameResolver)))
+                    .WithConstraintClauses(List(getTypeConstraints(type)))
                     .WithTypeParameterList(TypeParameterList(SeparatedList(getTypeParameters(type))));
             }
 
@@ -207,17 +252,17 @@ namespace Potter.ApiExtraction.Core.Generation
             {
                 interfaceDeclaration = interfaceDeclaration
                     .AddAttributeLists(
-                        createObsoleteAttribute(typeNameResolver, reason)
+                        createObsoleteAttribute(reason)
                     );
             }
 
             return interfaceDeclaration;
         }
 
-        private static AttributeListSyntax createObsoleteAttribute(TypeNameResolver typeNameResolver, string reason)
+        private AttributeListSyntax createObsoleteAttribute(string reason)
         {
             AttributeSyntax attribute = Attribute(
-                name: typeNameResolver.ResolveAttributeTypeName(typeof(ObsoleteAttribute))
+                name: _typeNameResolver.ResolveAttributeTypeName(typeof(ObsoleteAttribute))
             );
 
             if (reason != null)
@@ -248,26 +293,26 @@ namespace Potter.ApiExtraction.Core.Generation
         {
             if (typeNameResolver.TryGetApiTypeIdentifier(type, TypeRole.Instance, out SyntaxToken identifier) == false)
             {
-                System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier a type that should not generate. Type: {type}");
+                System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier for a type that should not generate. Type: {type}");
                 return null;
             }
 
             var enumDeclaration = EnumDeclaration(identifier)
-                .WithMembers(SeparatedList(getEnumMembers(type, typeNameResolver)))
+                .WithMembers(SeparatedList(getEnumMembers(type)))
                 .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
 
             if (type.IsDeprecated(out string reason))
             {
                 enumDeclaration = enumDeclaration
                     .AddAttributeLists(
-                        createObsoleteAttribute(typeNameResolver, reason)
+                        createObsoleteAttribute(reason)
                     );
             }
 
             return enumDeclaration;
         }
 
-        private IEnumerable<EnumMemberDeclarationSyntax> getEnumMembers(Type type, TypeNameResolver typeNameResolver)
+        private IEnumerable<EnumMemberDeclarationSyntax> getEnumMembers(Type type)
         {
             foreach (var fieldInfo in type.GetFields())
             {
@@ -277,18 +322,18 @@ namespace Potter.ApiExtraction.Core.Generation
                 }
 
                 bool isObsolete = type.IsDeprecated(out string reason);
-                if (isObsolete && typeNameResolver.Configuration.Types.IncludeObsolete == false)
+                if (isObsolete && _typeConfiguration.IncludeObsolete == false)
                 {
                     continue;
                 }
 
-                var enumMemberDeclaration = getEnumMember(fieldInfo, typeNameResolver);
+                var enumMemberDeclaration = getEnumMember(fieldInfo);
 
                 if (isObsolete)
                 {
                     enumMemberDeclaration = enumMemberDeclaration
                         .AddAttributeLists(
-                            createObsoleteAttribute(typeNameResolver, reason)
+                            createObsoleteAttribute(reason)
                         );
                 }
 
@@ -296,17 +341,17 @@ namespace Potter.ApiExtraction.Core.Generation
             }
         }
 
-        private EnumMemberDeclarationSyntax getEnumMember(FieldInfo fieldInfo, TypeNameResolver typeNameResolver)
+        private EnumMemberDeclarationSyntax getEnumMember(FieldInfo fieldInfo)
         {
             return EnumMemberDeclaration(fieldInfo.Name);
         }
 
-        private IEnumerable<(MemberDeclarationSyntax member, TypeRole role)> getMembers(Type type, TypeNameResolver typeNameResolver)
+        private IEnumerable<(MemberDeclarationSyntax member, TypeRole role)> getMembers(Type type)
         {
             // Structs do not contain default constructors.  Therefore, we must add one ourselves.
             if (type.IsValueType)
             {
-                MethodDeclarationSyntax constructoMethodDeclaration = getDefaultConstructorMethod(type, typeNameResolver);
+                MethodDeclarationSyntax constructoMethodDeclaration = getDefaultConstructorMethod(type);
 
                 yield return (constructoMethodDeclaration, TypeRole.Factory);
             }
@@ -320,7 +365,7 @@ namespace Potter.ApiExtraction.Core.Generation
 
                 bool isObsolete = memberInfo.IsDeprecated(out string reason);
 
-                if (isObsolete && typeNameResolver.Configuration.Types.IncludeObsolete == false)
+                if (isObsolete && _typeConfiguration.IncludeObsolete == false)
                 {
                     continue;
                 }
@@ -331,13 +376,13 @@ namespace Potter.ApiExtraction.Core.Generation
                     case MemberTypes.Constructor:
                         var constructorInfo = (ConstructorInfo) memberInfo;
 
-                        MethodDeclarationSyntax constructorMethodDeclaration = getConstructorMethod(constructorInfo, typeNameResolver);
+                        MethodDeclarationSyntax constructorMethodDeclaration = getConstructorMethod(constructorInfo);
 
                         if (isObsolete)
                         {
                             constructorMethodDeclaration = constructorMethodDeclaration
                                 .AddAttributeLists(
-                                    createObsoleteAttribute(typeNameResolver, reason)
+                                    createObsoleteAttribute(reason)
                                 );
                         }
 
@@ -353,13 +398,13 @@ namespace Potter.ApiExtraction.Core.Generation
                             continue;
                         }
 
-                        EventFieldDeclarationSyntax eventDeclaration = getEvent(eventInfo, typeNameResolver);
+                        EventFieldDeclarationSyntax eventDeclaration = getEvent(eventInfo);
 
                         if (isObsolete)
                         {
                             eventDeclaration = eventDeclaration
                                 .AddAttributeLists(
-                                    createObsoleteAttribute(typeNameResolver, reason)
+                                    createObsoleteAttribute(reason)
                                 );
                         }
 
@@ -386,13 +431,13 @@ namespace Potter.ApiExtraction.Core.Generation
                             continue;
                         }
 
-                        PropertyDeclarationSyntax fieldPropertyDeclaration = getFieldProperty(fieldInfo, typeNameResolver);
+                        PropertyDeclarationSyntax fieldPropertyDeclaration = getFieldProperty(fieldInfo);
 
                         if (isObsolete)
                         {
                             fieldPropertyDeclaration = fieldPropertyDeclaration
                                 .AddAttributeLists(
-                                    createObsoleteAttribute(typeNameResolver, reason)
+                                    createObsoleteAttribute(reason)
                                 );
                         }
 
@@ -413,13 +458,13 @@ namespace Potter.ApiExtraction.Core.Generation
                             continue;
                         }
 
-                        MethodDeclarationSyntax methodDeclaration = getMethod(methodInfo, typeNameResolver);
+                        MethodDeclarationSyntax methodDeclaration = getMethod(methodInfo);
 
                         if (isObsolete)
                         {
                             methodDeclaration = methodDeclaration
                                 .AddAttributeLists(
-                                    createObsoleteAttribute(typeNameResolver, reason)
+                                    createObsoleteAttribute(reason)
                                 );
                         }
 
@@ -443,13 +488,13 @@ namespace Potter.ApiExtraction.Core.Generation
 
                         if (propertyInfo.GetIndexParameters().Length > 0)
                         {
-                            IndexerDeclarationSyntax indexerDeclaration = getIndexer(propertyInfo, typeNameResolver);
+                            IndexerDeclarationSyntax indexerDeclaration = getIndexer(propertyInfo);
 
                             if (isObsolete)
                             {
                                 indexerDeclaration = indexerDeclaration
                                     .AddAttributeLists(
-                                        createObsoleteAttribute(typeNameResolver, reason)
+                                        createObsoleteAttribute(reason)
                                     );
                             }
 
@@ -464,13 +509,13 @@ namespace Potter.ApiExtraction.Core.Generation
                         }
                         else
                         {
-                            PropertyDeclarationSyntax propertyDeclaration = getProperty(propertyInfo, typeNameResolver);
+                            PropertyDeclarationSyntax propertyDeclaration = getProperty(propertyInfo);
 
                             if (isObsolete)
                             {
                                 propertyDeclaration = propertyDeclaration
                                     .AddAttributeLists(
-                                        createObsoleteAttribute(typeNameResolver, reason)
+                                        createObsoleteAttribute(reason)
                                     );
                             }
 
@@ -495,10 +540,10 @@ namespace Potter.ApiExtraction.Core.Generation
             }
         }
 
-        private MethodDeclarationSyntax getDefaultConstructorMethod(Type type, TypeNameResolver typeNameResolver)
+        private MethodDeclarationSyntax getDefaultConstructorMethod(Type type)
         {
-            TypeSyntax returnTypeSyntax = typeNameResolver.ResolveTypeName(type);
-            string baseName = getBaseTypeNameWithoutPrefix(type, typeNameResolver);
+            TypeSyntax returnTypeSyntax = _typeNameResolver.ResolveTypeName(type);
+            string baseName = getBaseTypeNameWithoutPrefix(type);
 
             MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + baseName))
                 .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
@@ -506,23 +551,23 @@ namespace Potter.ApiExtraction.Core.Generation
             return methodDeclaration;
         }
 
-        private MethodDeclarationSyntax getConstructorMethod(ConstructorInfo constructorInfo, TypeNameResolver typeNameResolver)
+        private MethodDeclarationSyntax getConstructorMethod(ConstructorInfo constructorInfo)
         {
-            TypeSyntax returnTypeSyntax = typeNameResolver.ResolveTypeName(constructorInfo.DeclaringType);
-            string baseName = getBaseTypeNameWithoutPrefix(constructorInfo.DeclaringType, typeNameResolver);
+            TypeSyntax returnTypeSyntax = _typeNameResolver.ResolveTypeName(constructorInfo.DeclaringType);
+            string baseName = getBaseTypeNameWithoutPrefix(constructorInfo.DeclaringType);
 
             MethodDeclarationSyntax methodDeclaration = MethodDeclaration(returnTypeSyntax, Identifier("Create" + baseName))
-                .WithParameterList(ParameterList(SeparatedList(getParameters(typeNameResolver, constructorInfo.GetParameters()))))
+                .WithParameterList(ParameterList(SeparatedList(getParameters(constructorInfo.GetParameters()))))
                 .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
 
             return methodDeclaration;
         }
 
-        private static string getBaseTypeNameWithoutPrefix(Type type, TypeNameResolver typeNameResolver)
+        private string getBaseTypeNameWithoutPrefix(Type type)
         {
-            if (typeNameResolver.TryGetApiTypeIdentifier(type, TypeRole.Instance, out SyntaxToken identifier) == false)
+            if (_typeNameResolver.TryGetApiTypeIdentifier(type, TypeRole.Instance, out SyntaxToken identifier) == false)
             {
-                System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier a type that should not generate. Type: {type}");
+                System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier for a type that should not generate. Type: {type}");
                 return string.Empty;
             }
 
@@ -538,31 +583,31 @@ namespace Potter.ApiExtraction.Core.Generation
             return baseName;
         }
 
-        private EventFieldDeclarationSyntax getEvent(EventInfo eventInfo, TypeNameResolver typeNameResolver)
+        private EventFieldDeclarationSyntax getEvent(EventInfo eventInfo)
         {
             return EventFieldDeclaration(VariableDeclaration(
-                type: typeNameResolver.ResolveTypeName(eventInfo.EventHandlerType),
+                type: _typeNameResolver.ResolveTypeName(eventInfo.EventHandlerType),
                 variables: SingletonSeparatedList(VariableDeclarator(eventInfo.Name))
             ));
         }
 
-        private MethodDeclarationSyntax getMethod(MethodInfo methodInfo, TypeNameResolver typeNameResolver)
+        private MethodDeclarationSyntax getMethod(MethodInfo methodInfo)
         {
-            MethodDeclarationSyntax methodDeclaration = MethodDeclaration(typeNameResolver.ResolveTypeName(methodInfo.ReturnType), methodInfo.Name)
-                .WithParameterList(ParameterList(SeparatedList(getParameters(typeNameResolver, methodInfo.GetParameters()))))
+            MethodDeclarationSyntax methodDeclaration = MethodDeclaration(_typeNameResolver.ResolveTypeName(methodInfo.ReturnType), methodInfo.Name)
+                .WithParameterList(ParameterList(SeparatedList(getParameters(methodInfo.GetParameters()))))
                 .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
 
             if (methodInfo.IsGenericMethod)
             {
                 methodDeclaration = methodDeclaration
-                    .WithConstraintClauses(List(getTypeConstraints(methodInfo, typeNameResolver)))
+                    .WithConstraintClauses(List(getTypeConstraints(methodInfo)))
                     .WithTypeParameterList(TypeParameterList(SeparatedList(getTypeParameters(methodInfo))));
             }
 
             return methodDeclaration;
         }
 
-        private PropertyDeclarationSyntax getFieldProperty(FieldInfo fieldInfo, TypeNameResolver typeNameResolver)
+        private PropertyDeclarationSyntax getFieldProperty(FieldInfo fieldInfo)
         {
             IEnumerable<AccessorDeclarationSyntax> getAccessors()
             {
@@ -576,16 +621,16 @@ namespace Potter.ApiExtraction.Core.Generation
                 }
             }
 
-            return PropertyDeclaration(typeNameResolver.ResolveTypeName(fieldInfo.FieldType), fieldInfo.Name)
+            return PropertyDeclaration(_typeNameResolver.ResolveTypeName(fieldInfo.FieldType), fieldInfo.Name)
                 .WithAccessorList(AccessorList(List(getAccessors())));
         }
 
-        private IEnumerable<ParameterSyntax> getParameters(TypeNameResolver typeNameResolver, params ParameterInfo[] parameters)
+        private IEnumerable<ParameterSyntax> getParameters(params ParameterInfo[] parameters)
         {
             foreach (var parameterInfo in parameters)
             {
                 var parameterSyntax = Parameter(Identifier(parameterInfo.Name))
-                    .WithType(typeNameResolver.ResolveTypeName(parameterInfo.ParameterType));
+                    .WithType(_typeNameResolver.ResolveTypeName(parameterInfo.ParameterType));
 
                 if (parameterInfo.IsOut)
                 {
@@ -611,7 +656,7 @@ namespace Potter.ApiExtraction.Core.Generation
             }
         }
 
-        private PropertyDeclarationSyntax getProperty(PropertyInfo propertyInfo, TypeNameResolver typeNameResolver)
+        private PropertyDeclarationSyntax getProperty(PropertyInfo propertyInfo)
         {
             IEnumerable<AccessorDeclarationSyntax> getAccessors()
             {
@@ -628,11 +673,11 @@ namespace Potter.ApiExtraction.Core.Generation
                 }
             }
 
-            return PropertyDeclaration(typeNameResolver.ResolveTypeName(propertyInfo.PropertyType), propertyInfo.Name)
+            return PropertyDeclaration(_typeNameResolver.ResolveTypeName(propertyInfo.PropertyType), propertyInfo.Name)
                 .WithAccessorList(AccessorList(List(getAccessors())));
         }
 
-        private IndexerDeclarationSyntax getIndexer(PropertyInfo propertyInfo, TypeNameResolver typeNameResolver)
+        private IndexerDeclarationSyntax getIndexer(PropertyInfo propertyInfo)
         {
             IEnumerable<AccessorDeclarationSyntax> getAccessors()
             {
@@ -649,9 +694,9 @@ namespace Potter.ApiExtraction.Core.Generation
                 }
             }
 
-            return IndexerDeclaration(typeNameResolver.ResolveTypeName(propertyInfo.PropertyType))
+            return IndexerDeclaration(_typeNameResolver.ResolveTypeName(propertyInfo.PropertyType))
                 .WithAccessorList(AccessorList(List(getAccessors())))
-                .WithParameterList(BracketedParameterList(SeparatedList(getParameters(typeNameResolver, propertyInfo.GetIndexParameters()))));
+                .WithParameterList(BracketedParameterList(SeparatedList(getParameters(propertyInfo.GetIndexParameters()))));
         }
 
         private IEnumerable<TypeParameterSyntax> getTypeParameters(Type type)
@@ -689,21 +734,21 @@ namespace Potter.ApiExtraction.Core.Generation
             }
         }
 
-        private IEnumerable<TypeParameterConstraintClauseSyntax> getTypeConstraints(Type type, TypeNameResolver typeNameResolver)
+        private IEnumerable<TypeParameterConstraintClauseSyntax> getTypeConstraints(Type type)
         {
             Type typeDefinition = type.IsGenericTypeDefinition ? type : type.GetGenericTypeDefinition();
 
-            return getTypeConstraints(typeDefinition.GetGenericArguments(), typeNameResolver);
+            return getTypeConstraints(typeDefinition.GetGenericArguments());
         }
 
-        private IEnumerable<TypeParameterConstraintClauseSyntax> getTypeConstraints(MethodInfo methodInfo, TypeNameResolver typeNameResolver)
+        private IEnumerable<TypeParameterConstraintClauseSyntax> getTypeConstraints(MethodInfo methodInfo)
         {
             MethodInfo methodDefinition = methodInfo.IsGenericMethodDefinition ? methodInfo : methodInfo.GetGenericMethodDefinition();
 
-            return getTypeConstraints(methodDefinition.GetGenericArguments(), typeNameResolver);
+            return getTypeConstraints(methodDefinition.GetGenericArguments());
         }
 
-        private IEnumerable<TypeParameterConstraintClauseSyntax> getTypeConstraints(IEnumerable<Type> genericArguments, TypeNameResolver typeNameResolver)
+        private IEnumerable<TypeParameterConstraintClauseSyntax> getTypeConstraints(IEnumerable<Type> genericArguments)
         {
             foreach (Type typeArgument in genericArguments)
             {
@@ -732,7 +777,7 @@ namespace Potter.ApiExtraction.Core.Generation
                         continue;
                     }
 
-                    typeConstraints.Add(TypeConstraint(typeNameResolver.ResolveTypeName(constraintType)));
+                    typeConstraints.Add(TypeConstraint(_typeNameResolver.ResolveTypeName(constraintType)));
                 }
 
                 if (typeConstraints.Count > 0)
@@ -743,9 +788,9 @@ namespace Potter.ApiExtraction.Core.Generation
             }
         }
 
-        private BaseListSyntax getBaseList(Type type, TypeNameResolver typeNameResolver)
+        private BaseListSyntax getBaseList(Type type)
         {
-            var baseTypes = getBaseTypes(type, typeNameResolver).ToList();
+            var baseTypes = getBaseTypes(type).ToList();
 
             if (baseTypes.Count == 0)
             {
@@ -761,13 +806,13 @@ namespace Potter.ApiExtraction.Core.Generation
             typeof(ValueType),
         };
 
-        private IEnumerable<BaseTypeSyntax> getBaseTypes(Type type, TypeNameResolver typeNameResolver)
+        private IEnumerable<BaseTypeSyntax> getBaseTypes(Type type)
         {
             if (type.BaseType != null
                 && _ignoredBaseTypes.Contains(type.BaseType) == false
                 && type.BaseType.FullName != "System.Runtime.InteropServices.WindowsRuntime.RuntimeClass")
             {
-                yield return SimpleBaseType(typeNameResolver.ResolveTypeName(type.BaseType));
+                yield return SimpleBaseType(_typeNameResolver.ResolveTypeName(type.BaseType));
             }
 
             foreach (var implementedInterface in type.GetInterfaces())
@@ -777,270 +822,10 @@ namespace Potter.ApiExtraction.Core.Generation
                     continue;
                 }
 
-                yield return SimpleBaseType(typeNameResolver.ResolveTypeName(implementedInterface));
+                yield return SimpleBaseType(_typeNameResolver.ResolveTypeName(implementedInterface));
             }
         }
 
         #endregion
-
-        #region Helpers
-
-        /// <summary>
-        ///     Creates a new syntax node with all whitespace and end of line trivia replaced with
-        ///     regularly formatted trivia.
-        /// </summary>
-        /// <param name="node">
-        ///     The node to format.
-        /// </param>
-        public static SyntaxNode NormalizeWhitespace(SyntaxNode node)
-        {
-            // NOTE: This method is necessary because PowerShell has great difficulty calling
-            //       generic methods (like NormalizeWhitespace).
-            return SyntaxNodeExtensions.NormalizeWhitespace(node);
-        }
-
-        #endregion
-    }
-
-    internal static class ReflectionExtensions
-    {
-        private const BindingFlags AnyMemberFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-
-        public static MemberExtensionKind GetExtensionKind(this EventInfo eventInfo)
-        {
-            EventInfo locateBase(Type baseType)
-            {
-                if (baseType == null)
-                {
-                    return null;
-                }
-
-                EventInfo baseEventInfo = baseType.GetEvent(eventInfo.Name, AnyMemberFlags);
-                if (baseEventInfo != null)
-                {
-                    return baseEventInfo;
-                }
-
-                return locateBase(baseType.BaseType);
-            }
-
-            MethodInfo firstAccessor = eventInfo.GetAddMethod();
-
-            // Check if the event is an override. (https://stackoverflow.com/a/16530993/2503153
-            // 11/8/2017)
-            if (firstAccessor.GetBaseDefinition().DeclaringType != firstAccessor.DeclaringType)
-            {
-                return MemberExtensionKind.Override;
-            }
-
-            MethodInfo baseEventAccessor = locateBase(eventInfo.DeclaringType?.BaseType)?.GetAddMethod();
-            bool hasBase = baseEventAccessor != null;
-
-            if (hasBase)
-            {
-                return MemberExtensionKind.New;
-            }
-
-            return MemberExtensionKind.Normal;
-        }
-
-        public static MemberExtensionKind GetExtensionKind(this PropertyInfo propertyInfo)
-        {
-            PropertyInfo locateBase(Type baseType)
-            {
-                if (baseType == null)
-                {
-                    return null;
-                }
-
-                PropertyInfo basePropertyInfo = baseType.GetProperty(propertyInfo.Name, AnyMemberFlags);
-                if (basePropertyInfo != null)
-                {
-                    return basePropertyInfo;
-                }
-
-                return locateBase(baseType.BaseType);
-            }
-
-            MethodInfo firstAccessor = propertyInfo.GetAccessors()[0];
-
-            // Check if the property is an override. (https://stackoverflow.com/a/16530993/2503153
-            // 11/8/2017)
-            if (firstAccessor.GetBaseDefinition().DeclaringType != firstAccessor.DeclaringType)
-            {
-                return MemberExtensionKind.Override;
-            }
-
-            MethodInfo basePropertyAccessor = locateBase(propertyInfo.DeclaringType?.BaseType)?.GetAccessors()[0];
-            bool hasBase = basePropertyAccessor != null;
-
-            if (hasBase)
-            {
-                return MemberExtensionKind.New;
-            }
-
-            return MemberExtensionKind.Normal;
-        }
-
-        public static MemberExtensionKind GetExtensionKind(this MethodInfo methodInfo)
-        {
-            // Check if the method is an override. (https://stackoverflow.com/a/16530993/2503153
-            // 11/8/2017)
-            if (methodInfo.GetBaseDefinition().DeclaringType != methodInfo.DeclaringType)
-            {
-                return MemberExtensionKind.Override;
-            }
-
-            Type[] parameterTypes = methodInfo.GetParameters().Select(parameter => parameter.ParameterType).ToArray();
-            MethodInfo locateBase(Type baseType)
-            {
-                if (baseType == null)
-                {
-                    return null;
-                }
-
-                MethodInfo basePropertyInfo = baseType.GetMethod(methodInfo.Name, AnyMemberFlags, null, parameterTypes, null);
-                if (basePropertyInfo != null)
-                {
-                    return basePropertyInfo;
-                }
-
-                return locateBase(baseType.BaseType);
-            }
-
-            MethodInfo baseMethod = locateBase(methodInfo.DeclaringType?.BaseType);
-            bool hasBase = baseMethod != null;
-
-            if (hasBase)
-            {
-                return MemberExtensionKind.New;
-            }
-
-            return MemberExtensionKind.Normal;
-        }
-
-        public static bool IsDeprecated(this MemberInfo memberInfo, out string reason)
-        {
-            string innerReason = null;
-
-            bool isDeprecated = HasAttribute(memberInfo, hasAttributeTest, checkAccessors: true);
-
-            reason = innerReason;
-
-            return isDeprecated;
-
-            bool hasAttributeTest(CustomAttributeData attributeData)
-            {
-                if (typeof(ObsoleteAttribute).IsEquivalentTo(attributeData.AttributeType)
-                    || attributeData.AttributeType.FullName == "Windows.Foundation.Metadata.DeprecatedAttribute")
-                {
-                    if (attributeData.ConstructorArguments?.Count > 0)
-                    {
-                        innerReason = attributeData.ConstructorArguments[0].Value?.ToString();
-                    }
-
-                    return true;
-                }
-
-                return false;
-            }
-        }
-
-        public static bool HasAttribute<T>(this MemberInfo memberInfo, bool checkAccessors)
-            where T : Attribute
-        {
-            Type attributeType = typeof(T);
-
-            Type declaringType = memberInfo as Type ?? memberInfo.DeclaringType;
-            bool isReflectionOnly = declaringType.Assembly.ReflectionOnly;
-
-            return hasAttribute(memberInfo, hasAttributeTest, checkAccessors);
-
-            bool hasAttributeTest(MemberInfo innerMemberInfo)
-            {
-                if (isReflectionOnly)
-                {
-                    IList<CustomAttributeData> customAttributes = innerMemberInfo.GetCustomAttributesData();
-
-                    return customAttributes.Any(attribute => attributeType.IsEquivalentTo(attribute.AttributeType));
-                }
-                else
-                {
-                    return innerMemberInfo.IsDefined(attributeType);
-                }
-            }
-        }
-
-        public static bool HasAttribute(this MemberInfo memberInfo, Func<CustomAttributeData, bool> attributeTest, bool checkAccessors)
-        {
-            return hasAttribute(memberInfo, hasAttributeTest, checkAccessors);
-
-            bool hasAttributeTest(MemberInfo innerMemberInfo)
-            {
-                IList<CustomAttributeData> customAttributes = innerMemberInfo.GetCustomAttributesData();
-
-                return customAttributes.Any(attributeTest);
-            }
-        }
-
-        private static bool hasAttribute(MemberInfo memberInfo, Func<MemberInfo, bool> attributeTest, bool checkAccessors)
-        {
-            if (attributeTest(memberInfo))
-            {
-                return true;
-            }
-
-            if (checkAccessors)
-            {
-                switch (memberInfo.MemberType)
-                {
-                    case MemberTypes.Event:
-                        EventInfo eventInfo = (EventInfo) memberInfo;
-                        return attributeTest(eventInfo.AddMethod) || attributeTest(eventInfo.RemoveMethod);
-
-                    case MemberTypes.Property:
-                        return ((PropertyInfo) memberInfo).GetAccessors().Any(attributeTest);
-
-                    default:
-                        return false;
-                }
-            }
-
-            return false;
-        }
-
-        public static bool HasAttribute<T>(this ParameterInfo parameterInfo)
-            where T : Attribute
-        {
-            Type attributeType = typeof(T);
-
-            Type declaringType = parameterInfo.Member as Type ?? parameterInfo.Member.DeclaringType;
-            bool isReflectionOnly = declaringType.Assembly.ReflectionOnly;
-
-            if (isReflectionOnly)
-            {
-                IList<CustomAttributeData> customAttributes = parameterInfo.GetCustomAttributesData();
-
-                return customAttributes.Any(attribute => attributeType.IsEquivalentTo(attribute.AttributeType));
-            }
-            else
-            {
-                return parameterInfo.IsDefined(attributeType);
-            }
-        }
-
-        public static bool HasAttribute(this ParameterInfo parameterInfo, Func<CustomAttributeData, bool> attributeTest)
-        {
-            IList<CustomAttributeData> customAttributes = parameterInfo.GetCustomAttributesData();
-
-            return customAttributes.Any(attributeTest);
-        }
-    }
-
-    internal enum MemberExtensionKind
-    {
-        Normal,
-        New,
-        Override,
     }
 }

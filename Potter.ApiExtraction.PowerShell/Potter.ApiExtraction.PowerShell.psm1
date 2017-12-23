@@ -1,5 +1,6 @@
 using namespace Potter.ApiExtraction.Core.Configuration
 using namespace Potter.ApiExtraction.Core.Generation
+using namespace Potter.ApiExtraction.Core.Utilities
 
 function Read-AssemblyApi
 {
@@ -26,7 +27,7 @@ function Read-AssemblyApi
 
             $apiTypeReader = [ApiTypeReader]::new()
 
-            $results = [Potter.ApiExtraction.Core.Utilities.ApiTypeReaderExtensions]::ReadResults($apiTypeReader, $configurationPath)
+            $results = [ApiTypeReaderExtensions]::ReadResults($apiTypeReader, $configurationPath)
 
             $assemblyLoader = [Potter.Reflection.AssemblyLoader]::new()
 
@@ -34,8 +35,8 @@ function Read-AssemblyApi
             {
                 $results | ForEach-Object {
 
-                    Write-Verbose "$($_.Namespace).$($_.Name)"
-                    return [Potter.ApiExtraction.Core.Utilities.ApiExtractionResult] $_
+                    Write-Verbose "$($_.Group)\$($_.Namespace).$($_.Name)"
+                    return [ApiExtractionResult] $_
                 }
             }
             finally
@@ -80,7 +81,16 @@ function Write-SourceFile
             HelpMessage = "The name of the code unit (e.g. the type name)."
         )]
         [string]
-        $Name
+        $Name,
+
+        # Specifies the sub-folder into which the source file should be written.
+        [Parameter(
+            Position = 3,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = "The sub-folder into which the source file should be written."
+        )]
+        [string]
+        $Group
     )
 
     process
@@ -92,7 +102,15 @@ function Write-SourceFile
                 New-Item -Path $Destination -ItemType Directory | Out-Null
             }
 
-            $destinationPath = Join-Path -Path $Destination -ChildPath "$Name.cs"
+            $destinationPath = $Destination
+
+            if ($Group)
+            {
+                $destinationPath = Join-Path -Path $destinationPath -ChildPath $Group
+            }
+
+            $destinationPath = Join-Path -Path $destinationPath -ChildPath "$Name.cs"
+
             Write-Verbose -Message "Writing file: $destinationPath"
             Set-Content -Value $SourceCode -Path $destinationPath
         }

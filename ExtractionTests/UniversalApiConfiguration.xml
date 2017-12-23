@@ -1,0 +1,13 @@
+<Api xmlns="http://schemas.danielrpotter.com/api/configuration/2017">
+  <Assembly Name="Windows.Foundation.UniversalApiContract, Version=5.0.0.0, Culture=neutral, PublicKeyToken=null, ContentType=WindowsRuntime" />
+  <Names>
+    <Namespace Name="Windows.Devices.Geolocation" NewName="Potter.Unified.Devices.Geolocation" />
+  </Names>
+  <Groups Prefix="Potter.Unified." Mode="Whitelist" SimplifyNamespaces="true">
+    <Group Name="Devices.Geolocation">
+      <Types>
+        <Namespace Name="Windows.Devices.Geolocation" />
+      </Types>
+    </Group>
+  </Groups>
+</Api>

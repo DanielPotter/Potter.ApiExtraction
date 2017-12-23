@@ -8,23 +8,44 @@ namespace Potter.ApiExtraction.Core.Tests
 {
     public static partial class ExpectedTypes
     {
-        private static readonly ApiConfiguration _defaultTypeConfiguration = new ApiConfiguration
+        private static ApiConfiguration createConfigurationForType(Type type)
         {
-            Assembly = new AssemblyElement
-            {
-                Name = typeof(ExpectedTypes).Assembly.FullName,
-                Location = typeof(ExpectedTypes).Assembly.Location,
-            },
-            Types = new TypeConfiguration
+            return new ApiConfiguration
             {
                 SimplifyNamespaces = true,
-            },
-        };
+                Assemblies = new AssemblyConfiguration[]
+                {
+                    new AssemblyConfiguration
+                    {
+                        Name = type.Assembly.FullName,
+                        Location = type.Assembly.Location,
+                    },
+                },
+                Groups = new GroupConfiguration[]
+                {
+                    new GroupConfiguration
+                    {
+                        Name = "TestGroup",
+                        Types = new TypeConfiguration
+                        {
+                            Mode = TypeMode.Whitelist,
+                            Items = new MemberSelector[]
+                            {
+                                new TypeSelector
+                                {
+                                    Name = type.Name,
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+        }
 
         public static Expectation EmptyClass { get; } = new Expectation
         {
             Type = typeof(Types.EmptyClass),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.EmptyClass)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -58,7 +79,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation SimpleFields { get; } = new Expectation
         {
             Type = typeof(Types.SimpleFields),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.SimpleFields)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -103,7 +124,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation SimpleProperties { get; } = new Expectation
         {
             Type = typeof(Types.SimpleProperties),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.SimpleProperties)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -152,7 +173,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation SimpleEvents { get; } = new Expectation
         {
             Type = typeof(Types.SimpleEvents),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.SimpleEvents)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Usings =
@@ -201,7 +222,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation IndexerProperties { get; } = new Expectation
         {
             Type = typeof(Types.IndexerProperties),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.IndexerProperties)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -254,7 +275,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation SimpleMethods { get; } = new Expectation
         {
             Type = typeof(Types.SimpleMethods),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.SimpleMethods)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -315,7 +336,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation ReferenceMethods { get; } = new Expectation
         {
             Type = typeof(Types.ReferenceMethods),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.ReferenceMethods)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -360,7 +381,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericMethods { get; } = new Expectation
         {
             Type = typeof(Types.GenericMethods),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.GenericMethods)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -421,7 +442,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericMethodsWithConstraints { get; } = new Expectation
         {
             Type = typeof(Types.GenericMethodsWithConstraints),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.GenericMethodsWithConstraints)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -483,7 +504,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericClassOf1 { get; } = new Expectation
         {
             Type = typeof(Types.GenericClass<>),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.GenericClass<>)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -517,7 +538,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericClassOf2 { get; } = new Expectation
         {
             Type = typeof(Types.GenericClass<,>),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.GenericClass<,>)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -551,7 +572,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericClassWithClassConstraint { get; } = new Expectation
         {
             Type = typeof(Types.GenericClassWithClassConstraint<>),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.GenericClassWithClassConstraint<>)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -593,7 +614,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericClassWithValueConstraint { get; } = new Expectation
         {
             Type = typeof(Types.GenericClassWithValueConstraint<>),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.GenericClassWithValueConstraint<>)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -635,7 +656,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericClassWithMultipleConstraints { get; } = new Expectation
         {
             Type = typeof(Types.GenericClassWithMultipleConstraints<,>),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.GenericClassWithMultipleConstraints<,>)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -679,7 +700,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation ClassWithConstructors { get; } = new Expectation
         {
             Type = typeof(Types.ClassWithConstructors),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.ClassWithConstructors)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -721,7 +742,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation GenericClassWithConstructors { get; } = new Expectation
         {
             Type = typeof(Types.GenericClassWithConstructors<,>),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.GenericClassWithConstructors<,>)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -763,7 +784,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation ClassWithStaticMembers { get; } = new Expectation
         {
             Type = typeof(Types.ClassWithStaticMembers),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.ClassWithStaticMembers)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -812,7 +833,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation EmptyStaticClass { get; } = new Expectation
         {
             Type = typeof(Types.EmptyStaticClass),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.EmptyStaticClass)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -835,7 +856,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation StructWithPublicMembers { get; } = new Expectation
         {
             Type = typeof(Types.StructWithPublicMembers),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.StructWithPublicMembers)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Usings =
@@ -888,7 +909,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation InterfaceWithPublicMembers { get; } = new Expectation
         {
             Type = typeof(Types.IInterfaceWithPublicMembers),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.IInterfaceWithPublicMembers)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Usings =
@@ -930,7 +951,7 @@ namespace Potter.ApiExtraction.Core.Tests
         public static Expectation SimpleEnum { get; } = new Expectation
         {
             Type = typeof(Types.SimpleEnum),
-            Configuration = _defaultTypeConfiguration,
+            Configuration = createConfigurationForType(typeof(Types.SimpleEnum)),
             CompilationUnit = new CompilationUnitExpectation
             {
                 Namespaces =
@@ -1288,72 +1309,58 @@ namespace Potter.ApiExtraction.Core.Tests
         public static ExpectationForAssembly SubsetSimpleClass { get; } = new ExpectationForAssembly
         {
             Assembly = typeof(Types.Subset.SimpleClass).Assembly,
-            Configuration = new ApiConfiguration
+            Configuration = createConfigurationForType(typeof(Types.Subset.SimpleClass)),
+            SourceFileInfo =
             {
-                Assembly = new AssemblyElement
+                new SourceFileInfoExpectation
                 {
-                    Name = typeof(Types.Subset.SimpleClass).Assembly.FullName,
-                    Location = typeof(Types.Subset.SimpleClass).Assembly.Location,
-                },
-                Types = new TypeConfiguration
-                {
-                    SimplifyNamespaces = true,
-                    Mode = TypeMode.Whitelist,
-                    Items = new MemberSelector[]
+                    Name = "I" + nameof(Types.Subset.SimpleClass),
+                    Group = "TestGroup",
+                    CompilationUnit = new CompilationUnitExpectation
                     {
-                        new NamespaceSelector
+                        Usings =
                         {
-                            Name = typeof(Types.Subset.SimpleClass).Namespace,
+                            "usingSystem;",
                         },
-                    },
-                },
-            },
-            CompilationUnits =
-            {
-                new CompilationUnitExpectation
-                {
-                    Usings =
-                    {
-                        "usingSystem;",
-                    },
-                    Namespaces =
-                    {
-                        new NamespaceExpectation
+                        Namespaces =
                         {
-                            Namespace = typeof(Types.Subset.SimpleClass).Namespace,
-                            Types =
+                            new NamespaceExpectation
                             {
-                                new TypeExpectation(TypeKind.Interface)
+                                Namespace = typeof(Types.Subset.SimpleClass).Namespace,
+                                Types =
                                 {
-                                    Declaration = $"publicinterfaceI{nameof(Types.Subset.SimpleClass)}",
-                                    Members =
+                                    new TypeExpectation(TypeKind.Interface)
                                     {
-                                        new MemberExpectation(MemberType.Method)
+                                        Declaration = $"publicinterfaceI{nameof(Types.Subset.SimpleClass)}",
+                                        Members =
                                         {
-                                            Declaration = "voidReset()",
-                                        },
-                                        new MemberExpectation(MemberType.Property)
-                                        {
-                                            Declaration = "intValue{get;set;}",
-                                        },
-                                        new MemberExpectation(MemberType.Indexer)
-                                        {
-                                            Declaration = "stringthis[intkey]{get;set;}",
-                                        },
-                                        new MemberExpectation(MemberType.Event)
-                                        {
-                                            Declaration = "eventEventHandlerChanged;",
+                                            new MemberExpectation(MemberType.Method)
+                                            {
+                                                Declaration = "voidReset()",
+                                            },
+                                            new MemberExpectation(MemberType.Property)
+                                            {
+                                                Declaration = "intValue{get;set;}",
+                                            },
+                                            new MemberExpectation(MemberType.Indexer)
+                                            {
+                                                Declaration = "stringthis[intkey]{get;set;}",
+                                            },
+                                            new MemberExpectation(MemberType.Event)
+                                            {
+                                                Declaration = "eventEventHandlerChanged;",
+                                            },
                                         },
                                     },
-                                },
-                                new TypeExpectation(TypeKind.Interface)
-                                {
-                                    Declaration = $"publicinterfaceI{nameof(Types.Subset.SimpleClass)}Factory",
-                                    Members =
+                                    new TypeExpectation(TypeKind.Interface)
                                     {
-                                        new MemberExpectation(MemberType.Method)
+                                        Declaration = $"publicinterfaceI{nameof(Types.Subset.SimpleClass)}Factory",
+                                        Members =
                                         {
-                                            Declaration = $"I{nameof(Types.Subset.SimpleClass)}Create{nameof(Types.Subset.SimpleClass)}()",
+                                            new MemberExpectation(MemberType.Method)
+                                            {
+                                                Declaration = $"I{nameof(Types.Subset.SimpleClass)}Create{nameof(Types.Subset.SimpleClass)}()",
+                                            },
                                         },
                                     },
                                 },

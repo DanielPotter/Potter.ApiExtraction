@@ -25,9 +25,32 @@ namespace Potter.ApiExtraction.Core.Generation
         public TypeNameResolver(ApiConfiguration configuration)
         {
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+
+            _configuredAssemblies = new Lazy<HashSet<string>>(initializeAssemblyNames);
+
+            HashSet<string> initializeAssemblyNames()
+            {
+                var assemblyNames = new HashSet<string>();
+
+                foreach (var assembly in configuration.Assemblies)
+                {
+                    if (string.IsNullOrEmpty(assembly.Name) == false)
+                    {
+                        assemblyNames.Add(new AssemblyName(assembly.Name).FullName);
+                    }
+                    else if (string.IsNullOrEmpty(assembly.Location) == false)
+                    {
+                        assemblyNames.Add(AssemblyName.GetAssemblyName(assembly.Location).FullName);
+                    }
+                }
+
+                return assemblyNames;
+            }
         }
 
         #region Configuration
+
+        private readonly Lazy<HashSet<string>> _configuredAssemblies;
 
         /// <summary>
         ///     Gets the type configuration specifying how names should resolve.
@@ -308,7 +331,7 @@ namespace Potter.ApiExtraction.Core.Generation
             {
                 Type = type,
                 IsAttributeDefinition = isAttributeDefinition,
-                QualifyType = Configuration.Types.SimplifyNamespaces == false,
+                QualifyType = Configuration.SimplifyNamespaces == false,
             };
 
             if (_typeCache.TryGetValue(args, out TypeResolution typeResolution) == false)
@@ -342,28 +365,6 @@ namespace Potter.ApiExtraction.Core.Generation
                 return new TypeResolution(IdentifierName(type.Name), null, hasRegisteredNamespace: false);
             }
 
-            AssemblyName configuredAssembly;
-            {
-                if (Configuration.Assembly == null)
-                {
-                    // There is no configuration. Assembly not found.
-                    configuredAssembly = null;
-                }
-                else if (string.IsNullOrEmpty(Configuration.Assembly.Name) == false)
-                {
-                    configuredAssembly = new AssemblyName(Configuration.Assembly.Name);
-                }
-                else if (string.IsNullOrEmpty(Configuration.Assembly.Location) == false)
-                {
-                    configuredAssembly = AssemblyName.GetAssemblyName(Configuration.Assembly.Location);
-                }
-                else
-                {
-                    // There is no configuration. Assembly not found.
-                    configuredAssembly = null;
-                }
-            }
-
             var mutableTypeResolution = new MutableTypeResolution();
 
             resolveConfiguredName();
@@ -372,74 +373,78 @@ namespace Potter.ApiExtraction.Core.Generation
                 // Provide the default namespace name.
                 mutableTypeResolution.NamespaceName = ParseName(type.Namespace);
 
-                if (configuredAssembly == null || type.Assembly.FullName != configuredAssembly.FullName)
+                if (_configuredAssemblies.Value.Count == 0 || _configuredAssemblies.Value.Contains(type.Assembly.FullName) == false)
                 {
-                    // The type does not exist in the assembly.
+                    // The type does not exist in any of the assemblies.
                     return;
                 }
 
-                if (Configuration.Types == null)
+                if (Configuration.Groups == null)
                 {
                     return;
                 }
 
-                bool shouldGenerateMatches = Configuration.Types.Mode == TypeMode.Whitelist;
-
-                if (Configuration.Types.Items == null)
+                foreach (var groupConfiguration in Configuration.Groups)
                 {
-                    mutableTypeResolution.ShouldGenerate = shouldGenerateMatches == false;
-                    return;
-                }
+                    bool shouldGenerateMatches = groupConfiguration.Types.Mode == TypeMode.Whitelist;
 
-                foreach (var selector in Configuration.Types.Items)
-                {
-                    switch (selector)
+                    if (groupConfiguration.Types?.Items == null)
                     {
-                        case TypeSelector typeSelector:
-                            if (string.Equals(type.Name, selector.Name))
-                            {
-                                if (string.IsNullOrEmpty(typeSelector.NewName) == false)
+                        mutableTypeResolution.ShouldGenerate = shouldGenerateMatches == false;
+                        continue;
+                    }
+
+                    foreach (var selector in groupConfiguration.Types.Items)
+                    {
+                        switch (selector)
+                        {
+                            case TypeSelector typeSelector:
+                                if (string.Equals(type.Name, selector.Name))
                                 {
-                                    mutableTypeResolution.InstanceIdentifier = Identifier(typeSelector.NewName);
-                                }
+                                    if (string.IsNullOrEmpty(typeSelector.NewName) == false)
+                                    {
+                                        mutableTypeResolution.InstanceIdentifier = Identifier(typeSelector.NewName);
+                                    }
 
-                                if (string.IsNullOrEmpty(typeSelector.FactoryName) == false)
+                                    if (string.IsNullOrEmpty(typeSelector.FactoryName) == false)
+                                    {
+                                        mutableTypeResolution.FactoryIdentifier = Identifier(typeSelector.FactoryName);
+                                    }
+
+                                    if (string.IsNullOrEmpty(typeSelector.ManagerName) == false)
+                                    {
+                                        mutableTypeResolution.ManagerIdentifier = Identifier(typeSelector.ManagerName);
+                                    }
+
+                                    mutableTypeResolution.ShouldGenerate = shouldGenerateMatches;
+                                    return;
+                                }
+                                break;
+
+                            case NamespaceSelector namespaceSelector:
+                                if (string.Equals(type.Namespace, selector.Name))
                                 {
-                                    mutableTypeResolution.FactoryIdentifier = Identifier(typeSelector.FactoryName);
-                                }
+                                    mutableTypeResolution.ShouldGenerate = shouldGenerateMatches;
 
-                                if (string.IsNullOrEmpty(typeSelector.ManagerName) == false)
+                                    if (string.IsNullOrEmpty(namespaceSelector.NewName) == false)
+                                    {
+                                        mutableTypeResolution.NamespaceName = ParseName(namespaceSelector.NewName);
+                                    }
+                                }
+                                else if (namespaceSelector.Recursive && type.Namespace.StartsWith(selector.Name + "."))
                                 {
-                                    mutableTypeResolution.ManagerIdentifier = Identifier(typeSelector.ManagerName);
+                                    mutableTypeResolution.ShouldGenerate = shouldGenerateMatches;
+
+                                    if (string.IsNullOrEmpty(namespaceSelector.NewName) == false)
+                                    {
+                                        string namespaceName = $"{namespaceSelector.NewName}.{type.Namespace.Remove(selector.Name.Length + 1)}";
+
+                                        mutableTypeResolution.NamespaceName = ParseName(namespaceName);
+                                        return;
+                                    }
                                 }
-
-                                mutableTypeResolution.ShouldGenerate = shouldGenerateMatches;
-                                return;
-                            }
-                            break;
-
-                        case NamespaceSelector namespaceSelector:
-                            if (string.Equals(type.Namespace, selector.Name))
-                            {
-                                mutableTypeResolution.ShouldGenerate = shouldGenerateMatches;
-
-                                if (string.IsNullOrEmpty(namespaceSelector.NewName) == false)
-                                {
-                                    mutableTypeResolution.NamespaceName = ParseName(namespaceSelector.NewName);
-                                }
-                            }
-                            else if (namespaceSelector.Recursive && type.Namespace.StartsWith(selector.Name + "."))
-                            {
-                                mutableTypeResolution.ShouldGenerate = shouldGenerateMatches;
-
-                                if (string.IsNullOrEmpty(namespaceSelector.NewName) == false)
-                                {
-                                    string namespaceName = $"{namespaceSelector.NewName}.{type.Namespace.Remove(selector.Name.Length + 1)}";
-
-                                    mutableTypeResolution.NamespaceName = ParseName(namespaceName);
-                                }
-                            }
-                            break;
+                                break;
+                        }
                     }
                 }
             }

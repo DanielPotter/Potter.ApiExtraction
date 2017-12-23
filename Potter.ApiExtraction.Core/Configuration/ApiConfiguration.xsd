@@ -22,12 +22,25 @@
       </xs:documentation>
     </xs:annotation>
     <xs:sequence>
-      <xs:element name="Assembly" type="AssemblyElement" />
-      <xs:element name="Types" type="TypeConfiguration" />
+      <xs:element name="Assemblies" type="AssemblySet" />
+      <xs:element name="Names" type="NameConfiguration" minOccurs="0" />
+      <xs:element name="Groups" type="GroupSet" />
+    </xs:sequence>
+    <xs:attribute name="SimplifyNamespaces" type="xs:boolean" use="optional" default="true" />
+  </xs:complexType>
+
+  <xs:complexType name="AssemblySet">
+    <xs:annotation>
+      <xs:documentation>
+        Contains a set of assemblies to read.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="Assembly" type="AssemblyConfiguration" minOccurs="0" maxOccurs="unbounded" />
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="AssemblyElement">
+  <xs:complexType name="AssemblyConfiguration">
     <xs:annotation>
       <xs:documentation>
         Describes how types should be read for a particular assembly.
@@ -48,6 +61,49 @@
     </xs:attribute>
   </xs:complexType>
 
+  <xs:complexType name="NameConfiguration">
+    <xs:annotation>
+      <xs:documentation>
+        Contains a set that maps type names to desired generated names.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="Type" type="TypeSelector" />
+        <xs:element name="Namespace" type="NamespaceSelector" />
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="GroupSet">
+    <xs:annotation>
+      <xs:documentation>
+        Contains a set of groups to generate.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="Group" type="GroupConfiguration" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="GroupConfiguration">
+    <xs:annotation>
+      <xs:documentation>
+        Contains the configuration for a generated group of types.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="Types" type="TypeConfiguration" minOccurs="0" maxOccurs="1" />
+    </xs:sequence>
+    <xs:attribute name="Name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          The group name of the generated types.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
   <xs:complexType name="TypeConfiguration">
     <xs:sequence>
       <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -57,7 +113,6 @@
     </xs:sequence>
     <xs:attribute name="Mode" type="TypeMode" use="optional" default="Blacklist" />
     <xs:attribute name="IncludeObsolete" type="xs:boolean" use="optional" default="false" />
-    <xs:attribute name="SimplifyNamespaces" type="xs:boolean" use="optional" default="true" />
   </xs:complexType>
 
   <xs:simpleType name="TypeMode">

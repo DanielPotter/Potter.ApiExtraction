@@ -268,9 +268,10 @@ namespace Potter.ApiExtraction.Core.Tests
         {
             // Arrange
             var typeNameResolver = new TypeNameResolver(expectation.Configuration);
+            var compilationUnitGenerator = new CompilationUnitGenerator(typeNameResolver, expectation.Configuration.Groups.First().Types);
 
             // Act
-            var compilationUnit = typeReader.ReadCompilationUnit(expectation.Type, typeNameResolver);
+            var compilationUnit = compilationUnitGenerator.ReadCompilationUnit(expectation.Type);
 
             // Assert
             AssertCompilationUnit(expectation.CompilationUnit, compilationUnit);
@@ -279,13 +280,21 @@ namespace Potter.ApiExtraction.Core.Tests
         public static void ReadAssemblyExpectation(ApiTypeReader typeReader, ExpectationForAssembly expectation)
         {
             // Act
-            IEnumerable<CompilationUnitSyntax> compilationUnits = typeReader.ReadAssembly(expectation.Assembly, expectation.Configuration);
+            IEnumerable<SourceFileInfo> sourceFileInfo = typeReader.ReadAssembly(expectation.Assembly, expectation.Configuration);
 
             // Assert
-            AssertSequence(expectation.CompilationUnits, compilationUnits, (expected, actual) =>
+            AssertSequence(expectation.SourceFileInfo, sourceFileInfo, (expected, actual) =>
             {
-                AssertCompilationUnit(expected, actual);
+                AssertSourceFileInfo(expected, actual);
             });
+        }
+
+        public static void AssertSourceFileInfo(SourceFileInfoExpectation expected, SourceFileInfo actual)
+        {
+            Assert.AreEqual(expected.Name, actual.Name, "Unexpected name");
+            Assert.AreEqual(expected.Group, actual.Group, "Unexpected group");
+
+            AssertCompilationUnit(expected.CompilationUnit, actual.CompilationUnit);
         }
 
         public static void AssertCompilationUnit(CompilationUnitExpectation expected, CompilationUnitSyntax actual)

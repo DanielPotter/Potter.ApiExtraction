@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Potter.ApiExtraction.Core.Configuration;
 using Potter.ApiExtraction.Core.Generation;
 using Potter.Reflection;
@@ -25,34 +24,19 @@ namespace Potter.ApiExtraction.Core.Utilities
                 throw new ArgumentNullException(nameof(configurationFile));
             }
 
-            foreach (var unit in Read(apiTypeReader, configurationFile))
+            foreach (var sourceFileInfo in Read(apiTypeReader, configurationFile))
             {
-                var namespaceDeclaration = (NamespaceDeclarationSyntax) unit.Members.First();
-                var memberDeclaration = namespaceDeclaration.Members.First();
+                string sourceCode = sourceFileInfo.CompilationUnit.NormalizeWhitespace().ToFullString();
 
-                string namespaceName = namespaceDeclaration.Name.ToString();
-
-                string name;
-                switch (memberDeclaration)
-                {
-                    case InterfaceDeclarationSyntax interfaceDeclaration:
-                        name = interfaceDeclaration.Identifier.Text;
-                        break;
-
-                    case EnumDeclarationSyntax enumDeclaration:
-                        name = enumDeclaration.Identifier.Text;
-                        break;
-
-                    default:
-                        name = null;
-                        break;
-                }
-
-                yield return new ApiExtractionResult(namespaceName, name, unit.NormalizeWhitespace().ToFullString());
+                yield return new ApiExtractionResult(
+                    name: sourceFileInfo.Name,
+                    namespaceName: sourceFileInfo.NamespaceName,
+                    group: sourceFileInfo.Group,
+                    sourceCode: sourceCode);
             }
         }
 
-        public static IEnumerable<CompilationUnitSyntax> Read(this ApiTypeReader apiTypeReader, string configurationFile)
+        public static IEnumerable<SourceFileInfo> Read(this ApiTypeReader apiTypeReader, string configurationFile)
         {
             if (string.IsNullOrEmpty(configurationFile))
             {
@@ -72,37 +56,43 @@ namespace Potter.ApiExtraction.Core.Utilities
             }
         }
 
-        public static IEnumerable<CompilationUnitSyntax> Read(this ApiTypeReader apiTypeReader, ApiConfiguration configuration)
+        public static IEnumerable<SourceFileInfo> Read(this ApiTypeReader apiTypeReader, ApiConfiguration configuration)
         {
             if (configuration == null)
             {
                 throw new ArgumentNullException(nameof(configuration));
             }
 
-            string assemblyLocation = configuration.Assembly.Location;
-
-            Assembly assembly;
-
-            using (var assemblyLoader = new AssemblyLoader())
+            foreach (var assemblyConfiguration in configuration.Assemblies)
             {
-                if (assemblyLocation != null)
+                string assemblyLocation = assemblyConfiguration.Location;
+
+                Assembly assembly;
+
+                using (var assemblyLoader = new AssemblyLoader())
                 {
-                    assembly = assemblyLoader.LoadFile(assemblyLocation);
+                    if (assemblyLocation != null)
+                    {
+                        assembly = assemblyLoader.LoadFile(assemblyLocation);
+                    }
+                    else
+                    {
+                        assembly = assemblyLoader.Load(assemblyConfiguration.Name);
+                    }
                 }
-                else
+
+                foreach (var sourceFileInfo in apiTypeReader.ReadAssembly(assembly, configuration))
                 {
-                    assembly = assemblyLoader.Load(configuration.Assembly.Name);
+                    yield return sourceFileInfo;
                 }
             }
-
-            return apiTypeReader.ReadAssembly(assembly, configuration);
         }
 
         public static IEnumerable<string> ReadNormalizedString(this ApiTypeReader apiTypeReader, string configurationFile)
         {
             foreach (var unit in Read(apiTypeReader, configurationFile))
             {
-                yield return unit.NormalizeWhitespace().ToString();
+                yield return unit.CompilationUnit.NormalizeWhitespace().ToString();
             }
         }
 
@@ -110,7 +100,7 @@ namespace Potter.ApiExtraction.Core.Utilities
         {
             foreach (var unit in Read(apiTypeReader, configuration))
             {
-                yield return unit.NormalizeWhitespace().ToString();
+                yield return unit.CompilationUnit.NormalizeWhitespace().ToString();
             }
         }
 
