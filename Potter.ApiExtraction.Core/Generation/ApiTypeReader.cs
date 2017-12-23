@@ -182,7 +182,11 @@ namespace Potter.ApiExtraction.Core.Generation
             SyntaxList<MemberDeclarationSyntax> typeDeclarations;
             if (type.IsEnum)
             {
-                typeDeclarations = SingletonList<MemberDeclarationSyntax>(createEnum(type, _typeNameResolver));
+                typeDeclarations = SingletonList<MemberDeclarationSyntax>(createEnum(type));
+            }
+            else if (type.IsDelegateType())
+            {
+                typeDeclarations = SingletonList<MemberDeclarationSyntax>(createDelegate(type));
             }
             else
             {
@@ -303,9 +307,9 @@ namespace Potter.ApiExtraction.Core.Generation
             );
         }
 
-        private EnumDeclarationSyntax createEnum(Type type, TypeNameResolver typeNameResolver)
+        private EnumDeclarationSyntax createEnum(Type type)
         {
-            if (typeNameResolver.TryGetApiTypeIdentifier(type, TypeRole.Instance, out SyntaxToken identifier) == false)
+            if (_typeNameResolver.TryGetApiTypeIdentifier(type, TypeRole.Instance, out SyntaxToken identifier) == false)
             {
                 System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier for a type that should not generate. Type: {type}");
                 return null;
@@ -358,6 +362,39 @@ namespace Potter.ApiExtraction.Core.Generation
         private EnumMemberDeclarationSyntax getEnumMember(FieldInfo fieldInfo)
         {
             return EnumMemberDeclaration(fieldInfo.Name);
+        }
+
+        private DelegateDeclarationSyntax createDelegate(Type type)
+        {
+            if (_typeNameResolver.TryGetApiTypeIdentifier(type, TypeRole.Instance, out SyntaxToken identifier) == false)
+            {
+                System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier for a type that should not generate. Type: {type}");
+                return null;
+            }
+
+            var methodInfo = type.GetMethod("Invoke");
+
+            var delegateDeclaration = DelegateDeclaration(_typeNameResolver.ResolveTypeName(methodInfo.ReturnType), identifier)
+                .WithParameterList(ParameterList(SeparatedList(getParameters(methodInfo.GetParameters()))))
+                .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)))
+                .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
+
+            if (type.IsGenericType)
+            {
+                delegateDeclaration = delegateDeclaration
+                    .WithConstraintClauses(List(getTypeConstraints(type)))
+                    .WithTypeParameterList(TypeParameterList(SeparatedList(getTypeParameters(type))));
+            }
+
+            if (type.IsDeprecated(out string reason))
+            {
+                delegateDeclaration = delegateDeclaration
+                    .AddAttributeLists(
+                        createObsoleteAttribute(reason)
+                    );
+            }
+
+            return delegateDeclaration;
         }
 
         private IEnumerable<(MemberDeclarationSyntax member, TypeRole role)> getMembers(Type type)

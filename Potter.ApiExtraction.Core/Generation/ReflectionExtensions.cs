@@ -239,5 +239,10 @@ namespace Potter.ApiExtraction.Core.Generation
 
             return customAttributes.Any(attributeTest);
         }
+
+        public static bool IsDelegateType(this Type type)
+        {
+            return type.IsClass && type.IsSealed && type.BaseType == typeof(MulticastDelegate);
+        }
     }
 }
