@@ -508,6 +508,8 @@ namespace Potter.ApiExtraction.Core.Generation
                 }
             }
 
+            TypeResolution? shortCircuitResolution = null;
+
             // Resolve type syntax.
             mutableTypeResolution.ShouldRegisterNamespace = false;
             mutableTypeResolution.TypeSyntax = resolveTypeSyntax();
@@ -537,9 +539,39 @@ namespace Potter.ApiExtraction.Core.Generation
                 // Check if it is a nullable type.
                 if (type.IsGenericType && typeof(Nullable<>).IsEquivalentTo(type.GetGenericTypeDefinition()))
                 {
-                    return NullableType(
-                        elementType: resolveTypeWithCaching(type.GetGenericArguments()[0]).TypeSyntax
-                    );
+                    // Only convert to nullable if the resolved type is a value type.
+                    // TODO: Need a more robust way of checking this. Maybe resolve type kind?
+                    //       (Daniel Potter, 12/23/2017)
+
+                    TypeResolution typeResolution = resolveTypeWithCaching(type.GetGenericArguments()[0]);
+
+                    bool isValueType;
+                    if (type.IsEnum)
+                    {
+                        // Enums will never resolve into interfaces.
+                        isValueType = true;
+                    }
+                    else if (typeResolution.ShouldGenerate)
+                    {
+                        // Since we've already ruled out enums, a resolved type will either be an
+                        // interface or a delegate; both types are reference types.
+                        isValueType = false;
+                    }
+                    else
+                    {
+                        // The types that remain will follow standard type rules.
+                        isValueType = type.IsValueType;
+                    }
+
+                    if (isValueType)
+                    {
+                        return NullableType(
+                            elementType: typeResolution.TypeSyntax
+                        );
+                    }
+
+                    shortCircuitResolution = typeResolution;
+                    return typeResolution.TypeSyntax;
                 }
 
                 // Check if it is a predefined type.
@@ -581,6 +613,11 @@ namespace Potter.ApiExtraction.Core.Generation
                 mutableTypeResolution.ShouldRegisterNamespace = true;
 
                 return typeNameSyntax;
+            }
+
+            if (shortCircuitResolution.HasValue)
+            {
+                return shortCircuitResolution.Value;
             }
 
             return new TypeResolution(
