@@ -365,6 +365,23 @@ namespace Potter.ApiExtraction.Core.Generation
                 return new TypeResolution(IdentifierName(type.Name), null, hasRegisteredNamespace: false);
             }
 
+            // Handle type transformations.
+            string qualifiedBaseTypeNameWithArity = $"{type.Namespace}.{type.Name}";
+
+            if (_externalTypeTransformations.TryGetValue(qualifiedBaseTypeNameWithArity, out Type transformType))
+            {
+                if (transformType.IsGenericType && type.IsConstructedGenericType)
+                {
+                    Type constructedType = transformType.MakeGenericType(type.GenericTypeArguments);
+
+                    return resolveTypeWithCaching(constructedType);
+                }
+                else
+                {
+                    return resolveTypeWithCaching(transformType);
+                }
+            }
+
             var mutableTypeResolution = new MutableTypeResolution();
 
             resolveConfiguredName();
@@ -520,23 +537,6 @@ namespace Potter.ApiExtraction.Core.Generation
                 if (predefinedTypeKind.HasValue)
                 {
                     return PredefinedType(Token(predefinedTypeKind.Value));
-                }
-
-                // Handle type transformations.
-                string qualifiedBaseTypeNameWithArity = $"{type.Namespace}.{type.Name}";
-
-                if (_externalTypeTransformations.TryGetValue(qualifiedBaseTypeNameWithArity, out Type transformType))
-                {
-                    if (transformType.IsGenericType)
-                    {
-                        var constructedType = transformType.MakeGenericType(type.GenericTypeArguments);
-
-                        return resolveTypeWithCaching(constructedType).TypeSyntax;
-                    }
-                    else
-                    {
-                        return resolveTypeWithCaching(transformType).TypeSyntax;
-                    }
                 }
 
                 SimpleNameSyntax typeNameSyntax;

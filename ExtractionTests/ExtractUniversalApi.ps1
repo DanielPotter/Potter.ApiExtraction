@@ -10,10 +10,9 @@ $files = Read-AssemblyApi -Path "$PSScriptRoot\UniversalApiContract.xml" -Verbos
 Write-Verbose "Write types" -Verbose
 $files | Write-SourceFile -Destination "$PSScriptRoot\UnifiedDeviceApi" -Verbose
 
+$global:LastError = $null
 if ($Error)
 {
+    $global:LastError = $Error[0]
     $Error[0].Exception | Format-List -Force
 }
-
-Pause
-Exit-PSHostProcess
