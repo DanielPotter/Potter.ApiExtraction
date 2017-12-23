@@ -459,7 +459,7 @@ namespace Potter.ApiExtraction.Core.Generation
                             {
                                 if (string.IsNullOrEmpty(selector.NewName) == false)
                                 {
-                                    string namespaceName = $"{selector.NewName}.{type.Namespace.Remove(selector.Name.Length + 1)}";
+                                    string namespaceName = $"{selector.NewName}.{type.Namespace.Substring(selector.Name.Length + 1)}";
 
                                     mutableTypeResolution.NamespaceName = ParseName(namespaceName);
                                 }
@@ -549,7 +549,7 @@ namespace Potter.ApiExtraction.Core.Generation
 
                                     if (string.IsNullOrEmpty(namespaceSelector.NewName) == false)
                                     {
-                                        string namespaceName = $"{namespaceSelector.NewName}.{type.Namespace.Remove(selector.Name.Length + 1)}";
+                                        string namespaceName = $"{namespaceSelector.NewName}.{type.Namespace.Substring(selector.Name.Length + 1)}";
 
                                         mutableTypeResolution.NamespaceName = ParseName(namespaceName);
                                         return;

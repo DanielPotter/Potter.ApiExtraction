@@ -5,18 +5,18 @@
     <Assembly Name="Windows.Foundation.UniversalApiContract, Version=5.0.0.0, Culture=neutral, PublicKeyToken=null, ContentType=WindowsRuntime" />
   </Assemblies>
   <Names>
-    <Namespace Name="Windows.Foundation" NewName="Potter.Unified.Foundation" />
-    <Namespace Name="Windows.Devices.Geolocation" NewName="Potter.Unified.Devices.Geolocation" />
+    <Namespace Name="Windows.Devices" NewName="Potter.Unified.Devices" Recursive="true" />
+    <Namespace Name="Windows.Foundation" NewName="Potter.Unified.Foundation" Recursive="true" />
   </Names>
   <Groups>
-    <Group Name="Potter.Unified.Foundation">
-      <Types Mode="Whitelist" SimplifyNamespaces="true">
-        <Type Name="Windows.Foundation.TypedEventHandler`2"/>
+    <Group Name="Potter.Unified.Devices.Geolocation">
+      <Types Mode="Whitelist">
+        <Namespace Name="Windows.Devices.Geolocation" Recursive="true" />
       </Types>
     </Group>
-    <Group Name="Potter.Unified.Devices.Geolocation">
-      <Types Mode="Whitelist" SimplifyNamespaces="true">
-        <Namespace Name="Windows.Devices.Geolocation"/>
+    <Group Name="Potter.Unified.Foundation">
+      <Types Mode="Whitelist">
+        <Type Name="Windows.Foundation.TypedEventHandler`2" />
       </Types>
     </Group>
   </Groups>

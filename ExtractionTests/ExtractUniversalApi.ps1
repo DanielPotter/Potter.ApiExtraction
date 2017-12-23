@@ -1,26 +1,34 @@
-Write-Verbose "Build module" -Verbose
-. "$PSScriptRoot\..\Potter.ApiExtraction.PowerShell\Build.ps1"
-
-Write-Verbose "Import module" -Verbose
-Import-Module "$PSScriptRoot\..\Potter.ApiExtraction.PowerShell" -Verbose
-
-Write-Verbose "Read assembly" -Verbose
-$files = Read-AssemblyApi -Path "$PSScriptRoot\UniversalApiContract.xml" -Verbose
-
-Write-Verbose "Write types" -Verbose
-$files | Write-SourceFile -Destination "$PSScriptRoot\UnifiedDeviceApi" -Verbose
-
-$global:LastError = $null
-if ($Error)
+try
 {
-    $global:LastError = $Error[0]
+    Write-Verbose "Build module" -Verbose
+    . "$PSScriptRoot\..\Potter.ApiExtraction.PowerShell\Build.ps1"
 
-    $LastError | Format-List -Force
+    Write-Verbose "Import module" -Verbose
+    Import-Module "$PSScriptRoot\..\Potter.ApiExtraction.PowerShell" -Verbose
 
-    $LastError.Exception | Format-List -Force
+    Write-Verbose "Clean output" -Verbose
+    Remove-Item -Path "$PSScriptRoot\UnifiedDeviceApi\*\*.cs" -Recurse -Force
 
-    if ($LastError.Exception.InnerException)
+    Write-Verbose "Read assembly" -Verbose
+    $files = Read-AssemblyApi -Path "$PSScriptRoot\UniversalApiContract.xml" -Verbose
+
+    Write-Verbose "Write types" -Verbose
+    $files | Write-SourceFile -Destination "$PSScriptRoot\UnifiedDeviceApi" -Verbose
+}
+finally
+{
+    $global:LastError = $null
+    if ($Error)
     {
-        $LastError.Exception.InnerException | Format-List -Force
+        $global:LastError = $Error[0]
+
+        $LastError | Format-List -Force
+
+        $LastError.Exception | Format-List -Force
+
+        if ($LastError.Exception.InnerException)
+        {
+            $LastError.Exception.InnerException | Format-List -Force
+        }
     }
 }
