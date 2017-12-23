@@ -63,6 +63,8 @@ namespace Potter.ApiExtraction.Core.Utilities
                 throw new ArgumentNullException(nameof(configuration));
             }
 
+            var typeNameResolver = new TypeNameResolver(configuration);
+
             foreach (var assemblyConfiguration in configuration.Assemblies)
             {
                 string assemblyLocation = assemblyConfiguration.Location;
@@ -81,7 +83,7 @@ namespace Potter.ApiExtraction.Core.Utilities
                     }
                 }
 
-                foreach (var sourceFileInfo in apiTypeReader.ReadAssembly(assembly, configuration))
+                foreach (var sourceFileInfo in apiTypeReader.ReadAssembly(assembly, configuration, typeNameResolver))
                 {
                     yield return sourceFileInfo;
                 }

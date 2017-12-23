@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Potter.ApiExtraction.Core.Configuration;
 
 namespace Potter.ApiExtraction.Core.Generation
 {
@@ -30,6 +31,7 @@ namespace Potter.ApiExtraction.Core.Generation
             bool shouldGenerate = false)
             : this(typeSyntax,
                   namespaceName,
+                  null,
                   default(SyntaxToken),
                   default(SyntaxToken),
                   default(SyntaxToken),
@@ -46,6 +48,9 @@ namespace Potter.ApiExtraction.Core.Generation
         /// </param>
         /// <param name="namespaceName">
         ///     The namespace qualification of the type.
+        /// </param>
+        /// <param name="group">
+        ///     The group that contains this type.
         /// </param>
         /// <param name="instanceIdentifier">
         ///     The name of the resolved type without generic parameters.
@@ -65,6 +70,7 @@ namespace Potter.ApiExtraction.Core.Generation
         public TypeResolution(
             TypeSyntax typeSyntax,
             NameSyntax namespaceName,
+            GroupConfiguration group,
             SyntaxToken instanceIdentifier,
             SyntaxToken factoryIdentifier,
             SyntaxToken managerIdentifier,
@@ -73,6 +79,7 @@ namespace Potter.ApiExtraction.Core.Generation
         {
             TypeSyntax = typeSyntax;
             NamespaceName = namespaceName;
+            Group = group;
             HasRegisteredNamespace = hasRegisteredNamespace;
             ShouldGenerate = shouldGenerate;
             InstanceIdentifier = instanceIdentifier;
@@ -99,6 +106,11 @@ namespace Potter.ApiExtraction.Core.Generation
         ///     Gets or sets a value indicating whether a file should be generated for this type.
         /// </summary>
         public bool ShouldGenerate { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the group that contains this type if it <see cref="ShouldGenerate"/>.
+        /// </summary>
+        public GroupConfiguration Group { get; set; }
 
         /// <summary>
         ///     Gets the name of the resolved type without generic parameters.

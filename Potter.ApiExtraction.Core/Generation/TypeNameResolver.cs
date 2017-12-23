@@ -318,6 +318,7 @@ namespace Potter.ApiExtraction.Core.Generation
         {
             public TypeSyntax TypeSyntax;
             public NameSyntax NamespaceName;
+            public GroupConfiguration Group;
             public bool ShouldRegisterNamespace;
             public bool ShouldGenerate;
             public SyntaxToken InstanceIdentifier;
@@ -408,6 +409,10 @@ namespace Potter.ApiExtraction.Core.Generation
                     if (groupConfiguration.Types?.Items == null)
                     {
                         mutableTypeResolution.ShouldGenerate = shouldGenerateMatches == false;
+                        if (mutableTypeResolution.ShouldGenerate)
+                        {
+                            mutableTypeResolution.Group = groupConfiguration;
+                        }
                         continue;
                     }
 
@@ -416,7 +421,8 @@ namespace Potter.ApiExtraction.Core.Generation
                         switch (selector)
                         {
                             case TypeSelector typeSelector:
-                                if (string.Equals(type.Name, selector.Name))
+                                if (string.Equals($"{type.Namespace}.{type.Name}", selector.Name)
+                                    || string.Equals(type.Name, selector.Name))
                                 {
                                     if (string.IsNullOrEmpty(typeSelector.NewName) == false)
                                     {
@@ -434,6 +440,7 @@ namespace Potter.ApiExtraction.Core.Generation
                                     }
 
                                     mutableTypeResolution.ShouldGenerate = shouldGenerateMatches;
+                                    mutableTypeResolution.Group = groupConfiguration;
                                     return;
                                 }
                                 break;
@@ -442,15 +449,18 @@ namespace Potter.ApiExtraction.Core.Generation
                                 if (string.Equals(type.Namespace, selector.Name))
                                 {
                                     mutableTypeResolution.ShouldGenerate = shouldGenerateMatches;
+                                    mutableTypeResolution.Group = groupConfiguration;
 
                                     if (string.IsNullOrEmpty(namespaceSelector.NewName) == false)
                                     {
                                         mutableTypeResolution.NamespaceName = ParseName(namespaceSelector.NewName);
+                                        return;
                                     }
                                 }
                                 else if (namespaceSelector.Recursive && type.Namespace.StartsWith(selector.Name + "."))
                                 {
                                     mutableTypeResolution.ShouldGenerate = shouldGenerateMatches;
+                                    mutableTypeResolution.Group = groupConfiguration;
 
                                     if (string.IsNullOrEmpty(namespaceSelector.NewName) == false)
                                     {
@@ -576,6 +586,7 @@ namespace Potter.ApiExtraction.Core.Generation
             return new TypeResolution(
                 typeSyntax: mutableTypeResolution.TypeSyntax,
                 namespaceName: mutableTypeResolution.NamespaceName,
+                group: mutableTypeResolution.Group,
                 instanceIdentifier: mutableTypeResolution.InstanceIdentifier,
                 factoryIdentifier: mutableTypeResolution.FactoryIdentifier,
                 managerIdentifier: mutableTypeResolution.ManagerIdentifier,

@@ -4,9 +4,15 @@
     <Assembly Name="Windows.Foundation.UniversalApiContract, Version=5.0.0.0, Culture=neutral, PublicKeyToken=null, ContentType=WindowsRuntime" />
   </Assemblies>
   <Names>
+    <Namespace Name="Windows.Foundation" NewName="Potter.Unified.Foundation" />
     <Namespace Name="Windows.Devices.Geolocation" NewName="Potter.Unified.Devices.Geolocation" />
   </Names>
   <Groups>
+    <Group Name="Potter.Unified.Foundation">
+      <Types Mode="Whitelist" SimplifyNamespaces="true">
+        <Type Name="Windows.Foundation.TypedEventHandler`2"/>
+      </Types>
+    </Group>
     <Group Name="Potter.Unified.Devices.Geolocation">
       <Types Mode="Whitelist" SimplifyNamespaces="true">
         <Namespace Name="Windows.Devices.Geolocation"/>

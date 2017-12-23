@@ -30,17 +30,23 @@ namespace Potter.ApiExtraction.Core.Generation
         /// <param name="configuration">
         ///     Specifies which and how types should be read.
         /// </param>
+        /// <param name="typeNameResolver">
+        ///     Specifies a resolver to use.
+        /// </param>
         /// <returns>
         ///     A sequence of <see cref="SourceFileInfo"/> objects representing type source code.
         /// </returns>
-        public IEnumerable<SourceFileInfo> ReadAssembly(Assembly assembly, ApiConfiguration configuration = null)
+        public IEnumerable<SourceFileInfo> ReadAssembly(Assembly assembly, ApiConfiguration configuration = null, TypeNameResolver typeNameResolver = null)
         {
             if (configuration == null)
             {
                 configuration = ApiConfiguration.CreateDefault(assembly.GetName());
             }
 
-            var typeNameResolver = new TypeNameResolver(configuration);
+            if (typeNameResolver == null)
+            {
+                typeNameResolver = new TypeNameResolver(configuration);
+            }
 
             //if (System.Diagnostics.Debugger.IsAttached)
             //{
@@ -53,36 +59,44 @@ namespace Potter.ApiExtraction.Core.Generation
 
             Console.WriteLine($"Reading assembly: {assembly.FullName} ({assembly.Location})");
 
+            var generators = new Dictionary<string, CompilationUnitGenerator>();
+
             foreach (var groupConfiguration in configuration.Groups)
             {
                 TypeConfiguration typeConfiguration = groupConfiguration.Types;
 
-                var compilationUnitGenerator = new CompilationUnitGenerator(typeNameResolver, typeConfiguration);
+                generators[groupConfiguration.Name] = new CompilationUnitGenerator(typeNameResolver, typeConfiguration);
+            }
 
-                foreach (Type type in assembly.ExportedTypes)
+            foreach (Type type in assembly.ExportedTypes)
+            {
+                var typeResolution = typeNameResolver.ResolveType(type);
+
+                if (typeResolution.ShouldGenerate == false)
                 {
-                    var typeResolution = typeNameResolver.ResolveType(type);
-
-                    if (typeResolution.ShouldGenerate == false)
-                    {
-                        continue;
-                    }
-
-                    if (typeConfiguration.IncludeObsolete == false && type.IsDeprecated(out string reason))
-                    {
-                        continue;
-                    }
-
-                    typeNameResolver.ClearRegisteredNamespaces();
-
-                    CompilationUnitSyntax compilationUnit = compilationUnitGenerator.ReadCompilationUnit(type);
-
-                    yield return new SourceFileInfo(
-                        name: typeResolution.InstanceIdentifier.ValueText,
-                        namespaceName: typeResolution.NamespaceName.ToString(),
-                        group: groupConfiguration.Name,
-                        compilationUnit: compilationUnit);
+                    continue;
                 }
+
+                GroupConfiguration groupConfiguration = typeResolution.Group;
+                if (groupConfiguration == null)
+                {
+                    continue;
+                }
+
+                if (groupConfiguration.Types.IncludeObsolete == false && type.IsDeprecated(out string reason))
+                {
+                    continue;
+                }
+
+                typeNameResolver.ClearRegisteredNamespaces();
+
+                CompilationUnitSyntax compilationUnit = generators[groupConfiguration.Name].ReadCompilationUnit(type);
+
+                yield return new SourceFileInfo(
+                    name: typeResolution.InstanceIdentifier.ValueText,
+                    namespaceName: typeResolution.NamespaceName.ToString(),
+                    group: groupConfiguration.Name,
+                    compilationUnit: compilationUnit);
             }
         }
 
