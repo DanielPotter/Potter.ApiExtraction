@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2009
+VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Potter.ApiExtraction.Core", "Potter.ApiExtraction.Core\Potter.ApiExtraction.Core.csproj", "{D340FAAC-6B07-4077-9134-867ACECD5B96}"
 EndProject
@@ -13,7 +13,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Potter.Reflection", "Potter
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Potter.Reflection.Tests", "Potter.Reflection.Tests\Potter.Reflection.Tests.csproj", "{12B07355-2D61-4EB0-82DE-A0E3DCE207BB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Potter.ApiExtraction.Core.Utilities", "Potter.ApiExtraction.Core.Utilities\Potter.ApiExtraction.Core.Utilities.csproj", "{E5118E61-9AB8-44FE-B93A-7478B322E4F8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Potter.ApiExtraction.Core.Utilities", "Potter.ApiExtraction.Core.Utilities\Potter.ApiExtraction.Core.Utilities.csproj", "{E5118E61-9AB8-44FE-B93A-7478B322E4F8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A72AC8F0-25C6-47A8-9031-52A7B0415EE0}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

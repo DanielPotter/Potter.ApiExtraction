@@ -60,6 +60,8 @@ $files | Write-SourceFile -Destination $output
   * This would make splitting up an assembly into multiple libraries much easier.
 * [ ] Support type unions
 * [ ] Generate a nested folder structure by namespace
+* [ ] Support member filters
+* [ ] Support explicit type transformations
 * [ ] Format generated code
 * [ ] Find a way to reduce redundancy in the XML configuration
 * [ ] Provide documentation from XML documentation
