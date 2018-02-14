@@ -57,7 +57,20 @@ namespace Potter.Reflection
 
         private Assembly resolveAssembly(object sender, ResolveEventArgs args)
         {
-            return Assembly.ReflectionOnlyLoad(args.Name);
+            try
+            {
+                return Assembly.ReflectionOnlyLoad(args.Name);
+            }
+            catch (FileNotFoundException)
+            {
+                string assemblyPath = resolveAssemblyLocationFromGAC(new AssemblyName(args.Name));
+                if (assemblyPath == null)
+                {
+                    throw;
+                }
+
+                return Assembly.ReflectionOnlyLoadFrom(assemblyPath);
+            }
         }
 
         private void resolveNamespace(object sender, NamespaceResolveEventArgs args)
@@ -111,6 +124,17 @@ namespace Potter.Reflection
         private static readonly string WindowsApiContractsFolder =
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Windows Kits\10\References");
 
+        private static readonly string WindowsGACFolder =
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), @"assembly\GAC_MSIL");
+        private static readonly string WindowsNetGACFolder =
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), @"Microsoft.Net\assembly\GAC_MSIL");
+
+        private static readonly string[] GACSearchFolders =
+        {
+            WindowsGACFolder,
+            WindowsNetGACFolder,
+        };
+
         private static string resolveAssemblyLocation(AssemblyName assemblyName)
         {
             Console.WriteLine($"Resolving assembly: {assemblyName.FullName}");
@@ -150,6 +174,35 @@ namespace Potter.Reflection
 
                 return null;
             }
+        }
+
+        private static string resolveAssemblyLocationFromGAC(AssemblyName assemblyName)
+        {
+            Console.WriteLine($"Resolving assembly: {assemblyName.FullName}");
+
+            foreach (string gacFolderPath in GACSearchFolders)
+            {
+                var assemblyFolder = new DirectoryInfo(Path.Combine(gacFolderPath, assemblyName.Name));
+
+                if (assemblyFolder.Exists == false)
+                {
+                    continue;
+                }
+
+                string searchPattern = $"*{assemblyName.Version}_{assemblyName.CultureInfo.TwoLetterISOLanguageName}_*";
+                Console.WriteLine($"Searching: {assemblyFolder.FullName} For: {searchPattern}");
+                foreach (var versionFolder in assemblyFolder.EnumerateDirectories(searchPattern))
+                {
+                    var assemblyFile = versionFolder.EnumerateFiles(assemblyName.Name + ".dll").FirstOrDefault();
+
+                    if (assemblyFile != null)
+                    {
+                        return assemblyFile.FullName;
+                    }
+                }
+            }
+
+            return null;
         }
     }
 

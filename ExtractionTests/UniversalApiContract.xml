@@ -1,4 +1,5 @@
-<Api xmlns="http://schemas.danielrpotter.com/api/configuration/2017">
+<Api
+  xmlns="http://schemas.danielrpotter.com/api/configuration/2017">
   <Assemblies>
     <Assembly Name="Windows.Foundation, Version=255.255.255.255, Culture=neutral, PublicKeyToken=null, ContentType=WindowsRuntime" Load="false" />
     <Assembly Name="Windows.Foundation.FoundationContract, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null, ContentType=WindowsRuntime" />
@@ -7,6 +8,14 @@
   <Names>
     <Namespace Name="Windows.Devices" NewName="Potter.Unified.Devices" Recursive="true" />
     <Namespace Name="Windows.Foundation" NewName="Potter.Unified.Foundation" Recursive="true" />
+    <Namespace Name="Windows.Storage" NewName="Potter.Unified.Storage">
+      <Types>
+        <Type Name="Windows.Storage.IStorageFile">
+          <UnionType Name="Windows.Storage.IStorageFile2" />
+          <UnionType Name="Windows.Storage.StorageFile" />
+        </Type>
+      </Types>
+    </Namespace>
   </Names>
   <Groups>
     <Group Name="Potter.Unified.Devices.Geolocation">
@@ -17,6 +26,11 @@
     <Group Name="Potter.Unified.Foundation">
       <Types Mode="Whitelist">
         <Type Name="Windows.Foundation.TypedEventHandler`2" />
+      </Types>
+    </Group>
+    <Group Name="Potter.Unified.Storage">
+      <Types Mode="Whitelist">
+        <Type Name="Windows.Storage.IStorageFile" />
       </Types>
     </Group>
   </Groups>

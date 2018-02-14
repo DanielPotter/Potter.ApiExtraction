@@ -198,10 +198,23 @@ namespace Potter.ApiExtraction.Core.Configuration {
     [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://schemas.danielrpotter.com/api/configuration/2017")]
     public partial class NamespaceSelector : MemberSelector {
         
+        private TypeSelector[] typesField;
+        
         private bool recursiveField;
         
         public NamespaceSelector() {
             this.recursiveField = false;
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlArrayItemAttribute("Type", IsNullable=false)]
+        public TypeSelector[] Types {
+            get {
+                return this.typesField;
+            }
+            set {
+                this.typesField = value;
+            }
         }
         
         /// <remarks/>
@@ -218,8 +231,78 @@ namespace Potter.ApiExtraction.Core.Configuration {
     }
     
     /// <remarks/>
-    [System.Xml.Serialization.XmlIncludeAttribute(typeof(NamespaceSelector))]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.7.2046.0")]
+    [System.SerializableAttribute()]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.ComponentModel.DesignerCategoryAttribute("code")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://schemas.danielrpotter.com/api/configuration/2017")]
+    public partial class TypeSelector : MemberSelector {
+        
+        private UnionType[] unionTypeField;
+        
+        private string factoryNameField;
+        
+        private string managerNameField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("UnionType")]
+        public UnionType[] UnionType {
+            get {
+                return this.unionTypeField;
+            }
+            set {
+                this.unionTypeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public string FactoryName {
+            get {
+                return this.factoryNameField;
+            }
+            set {
+                this.factoryNameField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public string ManagerName {
+            get {
+                return this.managerNameField;
+            }
+            set {
+                this.managerNameField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.7.2046.0")]
+    [System.SerializableAttribute()]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.ComponentModel.DesignerCategoryAttribute("code")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://schemas.danielrpotter.com/api/configuration/2017")]
+    public partial class UnionType {
+        
+        private string nameField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public string Name {
+            get {
+                return this.nameField;
+            }
+            set {
+                this.nameField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
     [System.Xml.Serialization.XmlIncludeAttribute(typeof(TypeSelector))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(NamespaceSelector))]
     [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.7.2046.0")]
     [System.SerializableAttribute()]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
@@ -250,41 +333,6 @@ namespace Potter.ApiExtraction.Core.Configuration {
             }
             set {
                 this.newNameField = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.7.2046.0")]
-    [System.SerializableAttribute()]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.ComponentModel.DesignerCategoryAttribute("code")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://schemas.danielrpotter.com/api/configuration/2017")]
-    public partial class TypeSelector : MemberSelector {
-        
-        private string factoryNameField;
-        
-        private string managerNameField;
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAttributeAttribute()]
-        public string FactoryName {
-            get {
-                return this.factoryNameField;
-            }
-            set {
-                this.factoryNameField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAttributeAttribute()]
-        public string ManagerName {
-            get {
-                return this.managerNameField;
-            }
-            set {
-                this.managerNameField = value;
             }
         }
     }

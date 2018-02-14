@@ -68,9 +68,9 @@ namespace Potter.ApiExtraction.Core.Generation
                 generators[groupConfiguration.Name] = new CompilationUnitGenerator(typeNameResolver, typeConfiguration);
             }
 
-            foreach (Type type in assembly.ExportedTypes)
+            foreach (GenerationTypeSource typeSource in resolveTypeSource(assembly.ExportedTypes, typeNameResolver))
             {
-                var typeResolution = typeNameResolver.ResolveType(type);
+                TypeResolution typeResolution = typeSource.TypeResolution;
 
                 if (typeResolution.ShouldGenerate == false)
                 {
@@ -83,20 +83,58 @@ namespace Potter.ApiExtraction.Core.Generation
                     continue;
                 }
 
-                if (groupConfiguration.Types.IncludeObsolete == false && type.IsDeprecated(out string reason))
+                if (groupConfiguration.Types.IncludeObsolete == false && typeSource.Type.IsDeprecated(out string reason))
                 {
                     continue;
                 }
 
                 typeNameResolver.ClearRegisteredNamespaces();
 
-                CompilationUnitSyntax compilationUnit = generators[groupConfiguration.Name].ReadCompilationUnit(type);
+                CompilationUnitSyntax compilationUnit = generators[groupConfiguration.Name].GenerateCompilationUnit(typeSource);
 
                 yield return new SourceFileInfo(
                     name: typeResolution.InstanceIdentifier.ValueText,
                     namespaceName: typeResolution.NamespaceName.ToString(),
                     group: groupConfiguration.Name,
                     compilationUnit: compilationUnit);
+            }
+        }
+
+        private IEnumerable<GenerationTypeSource> resolveTypeSource(IEnumerable<Type> types, TypeNameResolver typeNameResolver)
+        {
+            var rootUnionType = new Dictionary<string, Type>();
+            var unionTypes = new Dictionary<string, List<Type>>();
+
+            foreach (Type type in types)
+            {
+                if (typeNameResolver.IsUnionType(type, out TypeSelector typeSelector))
+                {
+                    // Resolve union types later.
+                    if (type.FullName == typeSelector.Name)
+                    {
+                        rootUnionType[typeSelector.Name] = type;
+                    }
+                    else
+                    {
+                        unionTypes.AddItem(typeSelector.Name, type);
+                    }
+
+                    continue;
+                }
+
+                TypeResolution typeResolution = typeNameResolver.ResolveType(type);
+                yield return new GenerationTypeSource(typeResolution, type);
+            }
+
+            foreach (KeyValuePair<string, Type> entry in rootUnionType)
+            {
+                string key = entry.Key;
+                Type type = entry.Value;
+
+                TypeResolution typeResolution = typeNameResolver.ResolveType(type);
+                unionTypes.TryGetValue(key, out List<Type> unionTypeList);
+
+                yield return new GenerationTypeSource(typeResolution, type, unionTypeList);
             }
         }
 
@@ -158,9 +196,25 @@ namespace Potter.ApiExtraction.Core.Generation
         ///     A <see cref="CompilationUnitSyntax"/> object representing the source code for a
         ///     namespace with an interface.
         /// </returns>
+        [Obsolete("Use GenerateCompilationUnit instead.")]
         public CompilationUnitSyntax ReadCompilationUnit(Type type)
         {
-            NamespaceDeclarationSyntax namespaceDeclaration = readNamespace(type);
+            return GenerateCompilationUnit(new GenerationTypeSource(_typeNameResolver.ResolveType(type), type));
+        }
+
+        /// <summary>
+        ///     Generates an compilation unit for a type.
+        /// </summary>
+        /// <param name="typeSource">
+        ///     The type from which to generate.
+        /// </param>
+        /// <returns>
+        ///     A <see cref="CompilationUnitSyntax"/> object representing the source code for a type
+        ///     within a namespace.
+        /// </returns>
+        public CompilationUnitSyntax GenerateCompilationUnit(GenerationTypeSource  typeSource)
+        {
+            NamespaceDeclarationSyntax namespaceDeclaration = readNamespace(typeSource);
 
             string currentNamespace = namespaceDeclaration.Name.ToString();
             IEnumerable<UsingDirectiveSyntax> usings = _typeNameResolver.GetRegisteredNamespaces()
@@ -177,77 +231,88 @@ namespace Potter.ApiExtraction.Core.Generation
             return compilationUnit;
         }
 
-        private NamespaceDeclarationSyntax readNamespace(Type type)
+        private NamespaceDeclarationSyntax readNamespace(GenerationTypeSource typeSource)
         {
+            Type type = typeSource.Type;
+
             SyntaxList<MemberDeclarationSyntax> typeDeclarations;
             if (type.IsEnum)
             {
-                typeDeclarations = SingletonList<MemberDeclarationSyntax>(createEnum(type));
+                typeDeclarations = SingletonList<MemberDeclarationSyntax>(createEnum(typeSource));
             }
             else if (type.IsDelegateType())
             {
-                typeDeclarations = SingletonList<MemberDeclarationSyntax>(createDelegate(type));
+                typeDeclarations = SingletonList<MemberDeclarationSyntax>(createDelegate(typeSource));
             }
             else
             {
-                typeDeclarations = List<MemberDeclarationSyntax>(readInterface(type));
+                typeDeclarations = List<MemberDeclarationSyntax>(readInterface(typeSource));
             }
 
-            var typeResolution = _typeNameResolver.ResolveType(type);
-
-            return NamespaceDeclaration(typeResolution.NamespaceName)
+            return NamespaceDeclaration(typeSource.TypeResolution.NamespaceName)
                 .WithMembers(typeDeclarations);
         }
 
-        private IEnumerable<InterfaceDeclarationSyntax> readInterface(Type type)
+        private IEnumerable<InterfaceDeclarationSyntax> readInterface(GenerationTypeSource typeSource)
         {
-            if (type.IsClass || type.IsInterface || type.IsValueType)
+            Type type = typeSource.Type;
+
+            if ((type.IsClass || type.IsInterface || type.IsValueType) == false)
             {
-                var members = getMembers(type);
+                yield break;
+            }
 
-                var instanceMembers = new List<MemberDeclarationSyntax>();
-                var factoryMembers = new List<MemberDeclarationSyntax>();
-                var managerMembers = new List<MemberDeclarationSyntax>();
+            var members = getMembers(type);
 
-                foreach (var member in members)
+            if (typeSource.UnionTypes != null && typeSource.UnionTypes.Any())
+            {
+                members = members.Concat(typeSource.UnionTypes.SelectMany(getMembers));
+            }
+
+            var instanceMembers = new List<MemberDeclarationSyntax>();
+            var factoryMembers = new List<MemberDeclarationSyntax>();
+            var managerMembers = new List<MemberDeclarationSyntax>();
+
+            foreach (var member in members)
+            {
+                switch (member.role)
                 {
-                    switch (member.role)
-                    {
-                        case TypeRole.Instance:
-                            instanceMembers.Add(member.member);
-                            break;
+                    case TypeRole.Instance:
+                        instanceMembers.Add(member.member);
+                        break;
 
-                        case TypeRole.Factory:
-                            factoryMembers.Add(member.member);
-                            break;
+                    case TypeRole.Factory:
+                        factoryMembers.Add(member.member);
+                        break;
 
-                        case TypeRole.Manager:
-                            managerMembers.Add(member.member);
-                            break;
-                    }
+                    case TypeRole.Manager:
+                        managerMembers.Add(member.member);
+                        break;
                 }
+            }
 
-                bool isStatic = type.IsSealed && type.IsAbstract;
+            bool isStatic = type.IsSealed && type.IsAbstract;
 
-                if (isStatic == false)
+            if (isStatic == false)
+            {
+                yield return createInterface(typeSource, instanceMembers, TypeRole.Instance);
+
+                if (factoryMembers.Count > 0)
                 {
-                    yield return createInterface(type, instanceMembers, TypeRole.Instance);
-
-                    if (factoryMembers.Count > 0)
-                    {
-                        yield return createInterface(type, factoryMembers, TypeRole.Factory);
-                    }
+                    yield return createInterface(typeSource, factoryMembers, TypeRole.Factory);
                 }
+            }
 
-                if (isStatic || managerMembers.Count > 0)
-                {
-                    yield return createInterface(type, managerMembers, TypeRole.Manager);
-                }
+            if (isStatic || managerMembers.Count > 0)
+            {
+                yield return createInterface(typeSource, managerMembers, TypeRole.Manager);
             }
         }
 
-        private InterfaceDeclarationSyntax createInterface(Type type, IEnumerable<MemberDeclarationSyntax> members, TypeRole role)
+        private InterfaceDeclarationSyntax createInterface(GenerationTypeSource typeSource, IEnumerable<MemberDeclarationSyntax> members, TypeRole role)
         {
+            Type type = typeSource.Type;
+
             if (_typeNameResolver.TryGetApiTypeIdentifier(type, role, out SyntaxToken identifier) == false)
             {
                 System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier for a type that should not generate. Type: {type}");
@@ -307,8 +372,10 @@ namespace Potter.ApiExtraction.Core.Generation
             );
         }
 
-        private EnumDeclarationSyntax createEnum(Type type)
+        private EnumDeclarationSyntax createEnum(GenerationTypeSource typeSource)
         {
+            Type type = typeSource.Type;
+
             if (_typeNameResolver.TryGetApiTypeIdentifier(type, TypeRole.Instance, out SyntaxToken identifier) == false)
             {
                 System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier for a type that should not generate. Type: {type}");
@@ -316,7 +383,7 @@ namespace Potter.ApiExtraction.Core.Generation
             }
 
             var enumDeclaration = EnumDeclaration(identifier)
-                .WithMembers(SeparatedList(getEnumMembers(type)))
+                .WithMembers(SeparatedList(getEnumMembers(typeSource)))
                 .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
 
             if (type.IsDeprecated(out string reason))
@@ -330,16 +397,23 @@ namespace Potter.ApiExtraction.Core.Generation
             return enumDeclaration;
         }
 
-        private IEnumerable<EnumMemberDeclarationSyntax> getEnumMembers(Type type)
+        private IEnumerable<EnumMemberDeclarationSyntax> getEnumMembers(GenerationTypeSource typeSource)
         {
-            foreach (var fieldInfo in type.GetFields())
+            IEnumerable<FieldInfo> fields = typeSource.Type.GetFields();
+
+            if (typeSource.UnionTypes != null && typeSource.UnionTypes.Any())
+            {
+                fields = fields.Concat(typeSource.UnionTypes.SelectMany(type => type.GetFields()));
+            }
+
+            foreach (var fieldInfo in fields)
             {
                 if (fieldInfo.IsSpecialName || fieldInfo.HasAttribute<CompilerGeneratedAttribute>(checkAccessors: false))
                 {
                     continue;
                 }
 
-                bool isObsolete = type.IsDeprecated(out string reason);
+                bool isObsolete = fieldInfo.IsDeprecated(out string reason);
                 if (isObsolete && _typeConfiguration.IncludeObsolete == false)
                 {
                     continue;
@@ -364,8 +438,10 @@ namespace Potter.ApiExtraction.Core.Generation
             return EnumMemberDeclaration(fieldInfo.Name);
         }
 
-        private DelegateDeclarationSyntax createDelegate(Type type)
+        private DelegateDeclarationSyntax createDelegate(GenerationTypeSource typeSource)
         {
+            Type type = typeSource.Type;
+
             if (_typeNameResolver.TryGetApiTypeIdentifier(type, TypeRole.Instance, out SyntaxToken identifier) == false)
             {
                 System.Diagnostics.Debug.WriteLine($"Cannot get a generation identifier for a type that should not generate. Type: {type}");

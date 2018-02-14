@@ -140,6 +140,37 @@
     </xs:attribute>
   </xs:complexType>
 
+  <xs:complexType name="NamespaceSelector">
+    <xs:complexContent>
+      <xs:extension base="MemberSelector">
+        <xs:annotation>
+          <xs:documentation>
+            Describes how namespaces should be selected.
+          </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+          <xs:element name="Types" type="TypeSet" minOccurs="0" maxOccurs="1" />
+        </xs:sequence>
+        <xs:attribute name="Recursive" type="xs:boolean" use="optional" default="false">
+          <xs:annotation>
+            <xs:documentation>An optional filter to include children of this namespace.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="TypeSet">
+    <xs:annotation>
+      <xs:documentation>
+        Contains a set of types to generate.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="Type" type="TypeSelector" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
   <xs:complexType name="TypeSelector">
     <xs:complexContent>
       <xs:extension base="MemberSelector">
@@ -148,6 +179,9 @@
             Describes how types should be selected.
           </xs:documentation>
         </xs:annotation>
+        <xs:sequence>
+          <xs:element name="UnionType" type="UnionType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
         <xs:attribute name="FactoryName" type="xs:string" use="optional">
           <xs:annotation>
             <xs:documentation>The namespace name, namespace qualified type name, or simple type name to assign for the generated factory interface.</xs:documentation>
@@ -162,20 +196,7 @@
     </xs:complexContent>
   </xs:complexType>
 
-  <xs:complexType name="NamespaceSelector">
-    <xs:complexContent>
-      <xs:extension base="MemberSelector">
-        <xs:annotation>
-          <xs:documentation>
-            Describes how namespaces should be selected.
-          </xs:documentation>
-        </xs:annotation>
-        <xs:attribute name="Recursive" type="xs:boolean" use="optional" default="false">
-          <xs:annotation>
-            <xs:documentation>An optional filter to include children of this namespace.</xs:documentation>
-          </xs:annotation>
-        </xs:attribute>
-      </xs:extension>
-    </xs:complexContent>
+  <xs:complexType name="UnionType">
+    <xs:attribute name="Name" type="xs:string" use="required" />
   </xs:complexType>
 </xs:schema>

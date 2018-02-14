@@ -27,8 +27,7 @@ namespace Potter.ApiExtraction.Core.Generation
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
             _configuredAssemblies = new Lazy<HashSet<string>>(initializeAssemblyNames);
-            _namespaceNameSelectors = new Lazy<Dictionary<string, NamespaceSelector>>(initializeNamespaceNameSelectors);
-            _typeNameSelectors = new Lazy<Dictionary<string, TypeSelector>>(initializeTypeNameSelectors);
+            _configuredNameCache = new Lazy<ConfiguredNameCache>(initializeConfiguredNameCache);
 
             HashSet<string> initializeAssemblyNames()
             {
@@ -49,46 +48,59 @@ namespace Potter.ApiExtraction.Core.Generation
                 return assemblyNames;
             }
 
-            Dictionary<string, NamespaceSelector> initializeNamespaceNameSelectors()
+            ConfiguredNameCache initializeConfiguredNameCache()
             {
-                var selectors = new Dictionary<string, NamespaceSelector>();
+                var namespaceNameSelectors = new Dictionary<string, NamespaceSelector>();
+                var typeNameSelectors = new Dictionary<string, TypeSelector>();
+                var unionTypeNames = new HashSet<string>();
 
-                foreach (var selector in configuration.Names.Items)
+                void addTypeSelector(TypeSelector typeSelector)
                 {
-                    switch (selector)
+                    typeNameSelectors[typeSelector.Name] = typeSelector;
+
+                    if (typeSelector.UnionType?.Length > 0)
                     {
-                        case NamespaceSelector namespaceSelector:
-                            selectors[namespaceSelector.Name] = namespaceSelector;
-                            break;
+                        unionTypeNames.Add(typeSelector.Name);
+
+                        foreach (var unionType in typeSelector.UnionType)
+                        {
+                            typeNameSelectors[unionType.Name] = typeSelector;
+                        }
                     }
                 }
-
-                return selectors;
-            }
-
-            Dictionary<string, TypeSelector> initializeTypeNameSelectors()
-            {
-                var selectors = new Dictionary<string, TypeSelector>();
 
                 foreach (var selector in configuration.Names.Items)
                 {
                     switch (selector)
                     {
                         case TypeSelector typeSelector:
-                            selectors[typeSelector.Name] = typeSelector;
+                            addTypeSelector(typeSelector);
+                            break;
+
+                        case NamespaceSelector namespaceSelector:
+                            namespaceNameSelectors[namespaceSelector.Name] = namespaceSelector;
+
+                            if (namespaceSelector.Types == null)
+                            {
+                                continue;
+                            }
+
+                            foreach (var typeSelector in namespaceSelector.Types)
+                            {
+                                addTypeSelector(typeSelector);
+                            }
                             break;
                     }
                 }
 
-                return selectors;
+                return new ConfiguredNameCache(namespaceNameSelectors, typeNameSelectors, unionTypeNames);
             }
         }
 
         #region Configuration
 
         private readonly Lazy<HashSet<string>> _configuredAssemblies;
-        private readonly Lazy<Dictionary<string, NamespaceSelector>> _namespaceNameSelectors;
-        private readonly Lazy<Dictionary<string, TypeSelector>> _typeNameSelectors;
+        private readonly Lazy<ConfiguredNameCache> _configuredNameCache;
 
         /// <summary>
         ///     Gets the type configuration specifying how names should resolve.
@@ -108,6 +120,78 @@ namespace Potter.ApiExtraction.Core.Generation
         public bool IsApiType(Type type)
         {
             return resolveTypeWithCaching(type, registerNamespace: false).ShouldGenerate;
+        }
+
+        /// <summary>
+        ///     Gets the selected types that should be unified.
+        /// </summary>
+        /// <returns>
+        ///     A sequence of <see cref="TypeSelector"/> instances that contain union types.
+        /// </returns>
+        public IEnumerable<TypeSelector> GetUnionTypes()
+        {
+            foreach (string typeName in _configuredNameCache.Value.UnionTypeNames)
+            {
+                yield return _configuredNameCache.Value.TypeNameSelectors[typeName];
+            }
+        }
+
+        /// <summary>
+        ///     Determines whether the specified type should be unified.
+        /// </summary>
+        /// <param name="type">
+        ///     The type to check.
+        /// </param>
+        /// <returns>
+        ///     <c>true</c> if <paramref name="type"/> should be unified with other types;
+        ///     otherwise, <c>false</c>.
+        /// </returns>
+        public bool IsUnionType(Type type)
+        {
+            return IsUnionType(type, out TypeSelector typeSelector);
+        }
+
+        /// <summary>
+        ///     Determines whether the specified type should be unified.
+        /// </summary>
+        /// <param name="type">
+        ///     The type to check.
+        /// </param>
+        /// <param name="typeSelector">
+        ///     When this method returns, contains the root union type if one exists for
+        ///     <paramref name="type"/>; otherwise, <c>null</c>.
+        /// </param>
+        /// <returns>
+        ///     <c>true</c> if <paramref name="type"/> should be unified with other types;
+        ///     otherwise, <c>false</c>.
+        /// </returns>
+        public bool IsUnionType(Type type, out TypeSelector typeSelector)
+        {
+            if (_configuredNameCache.Value.TypeNameSelectors.TryGetValue(type.Name, out typeSelector))
+            {
+                return typeSelector.UnionType?.Length > 0;
+            }
+
+            return false;
+        }
+
+        private struct ConfiguredNameCache
+        {
+            public ConfiguredNameCache(
+                IReadOnlyDictionary<string, NamespaceSelector> namespaceNameSelectors,
+                IReadOnlyDictionary<string, TypeSelector> typeNameSelectors,
+                HashSet<string> unionTypeNames)
+            {
+                NamespaceNameSelectors = namespaceNameSelectors;
+                TypeNameSelectors = typeNameSelectors;
+                UnionTypeNames = unionTypeNames;
+            }
+
+            public IReadOnlyDictionary<string, NamespaceSelector> NamespaceNameSelectors { get; }
+
+            public IReadOnlyDictionary<string, TypeSelector> TypeNameSelectors { get; }
+
+            public HashSet<string> UnionTypeNames { get; }
         }
 
         #endregion
@@ -442,7 +526,9 @@ namespace Potter.ApiExtraction.Core.Generation
 
                 // Check standalone names.
                 {
-                    if (_namespaceNameSelectors.Value.TryGetValue(type.Namespace, out NamespaceSelector namespaceSelector))
+                    ConfiguredNameCache nameCache = _configuredNameCache.Value;
+
+                    if (nameCache.NamespaceNameSelectors.TryGetValue(type.Namespace, out NamespaceSelector namespaceSelector))
                     {
                         if (string.IsNullOrEmpty(namespaceSelector.NewName) == false)
                         {
@@ -453,7 +539,7 @@ namespace Potter.ApiExtraction.Core.Generation
                     {
                         // TODO: Simplify recursive namespace checking. Maybe extract this to a
                         //       cache? (Daniel Potter, 12/23/2017)
-                        foreach (NamespaceSelector selector in _namespaceNameSelectors.Value.Values)
+                        foreach (NamespaceSelector selector in nameCache.NamespaceNameSelectors.Values)
                         {
                             if (selector.Recursive && type.Namespace.StartsWith(selector.Name + "."))
                             {
@@ -467,8 +553,8 @@ namespace Potter.ApiExtraction.Core.Generation
                         }
                     }
 
-                    if (_typeNameSelectors.Value.TryGetValue($"{type.Namespace}.{type.Name}", out TypeSelector typeSelector)
-                        || _typeNameSelectors.Value.TryGetValue(type.Name, out typeSelector))
+                    if (nameCache.TypeNameSelectors.TryGetValue($"{type.Namespace}.{type.Name}", out TypeSelector typeSelector)
+                        || nameCache.TypeNameSelectors.TryGetValue(type.Name, out typeSelector))
                     {
                         if (string.IsNullOrEmpty(typeSelector.NewName) == false)
                         {

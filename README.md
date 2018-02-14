@@ -58,8 +58,8 @@ $files | Write-SourceFile -Destination $output
 * [ ] Allow partial configurations
   * E.g. Separate files for type name transformations and type filtering.
   * This would make splitting up an assembly into multiple libraries much easier.
-* [ ] Support type unions
-* [ ] Generate a nested folder structure by namespace
+* [X] Support type unions
+* [X] Generate a nested folder structure by namespace
 * [ ] Support member filters
 * [ ] Support explicit type transformations
 * [ ] Format generated code
